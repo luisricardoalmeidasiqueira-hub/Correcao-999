@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0758c9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="999">
+<link rel="icon" type="image/png" href="999-icon.png">
+<link rel="apple-touch-icon" href="999-icon.png">
+<title>999 — Correção de Lançamentos</title>
+<style>
+:root{
+  --blue:#0758c9; --blue2:#0b75e8; --navy:#063b88;
+  --bg:#eef4fb; --card:#fff; --line:#d8e3f1; --text:#102a4a;
+  --red:#ef3340; --yellow:#f5b900; --green:#18a957; --muted:#6c7d91;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(#eaf2fb,#f7f9fc);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text)}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.app{max-width:520px;margin:auto;min-height:100vh;background:var(--bg);box-shadow:0 0 35px #0b3a7020}
+header{background:linear-gradient(135deg,var(--navy),var(--blue2));color:#fff;padding:18px 18px 16px;position:sticky;top:0;z-index:20}
+.headrow{display:flex;align-items:center;gap:12px}
+.logo{width:48px;height:48px;border-radius:13px;background:#fff;padding:4px;object-fit:cover}
+.title{font-weight:800;font-size:23px;line-height:1}
+.subtitle{font-size:12px;opacity:.88;margin-top:5px}
+.head-actions{margin-left:auto;display:flex;gap:7px}
+.iconbtn{border:0;background:#ffffff1f;color:#fff;width:40px;height:40px;border-radius:12px;font-size:22px}
+main{padding:14px 14px 90px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:0 5px 16px #164a7b10;margin-bottom:12px}
+h2{font-size:19px;margin:0 0 14px}
+.grid{display:grid;grid-template-columns:1.35fr .65fr;gap:11px}
+.field{margin-bottom:10px}
+label{display:block;font-size:13px;font-weight:800;margin-bottom:5px}
+.req{color:#e22;font-weight:900}
+input,select{width:100%;border:1px solid #b9cbe0;border-radius:11px;padding:12px 11px;background:#fbfdff;color:var(--text);outline:none}
+input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px #0758c915}
+.datewrap{position:relative}
+.datewrap input{padding-right:43px}
+.datewrap span{position:absolute;right:11px;top:10px;font-size:22px;pointer-events:none}
+.camera{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:1px dashed #8eb1d7;background:#eef6ff;color:var(--blue);padding:11px;border-radius:11px;font-weight:800}
+.preview{display:none;margin-top:8px;position:relative}
+.preview img{width:100%;max-height:220px;object-fit:cover;border-radius:12px}
+.remove-photo{position:absolute;right:8px;top:8px;border:0;background:#ef3340;color:#fff;border-radius:50%;width:34px;height:34px}
+.save{width:100%;border:0;border-radius:13px;padding:14px;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;font-weight:900;font-size:16px;margin-top:4px}
+.hint{font-size:11px;color:var(--muted);text-align:center;margin-top:8px}
+.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.secondary{border:1px solid #c9d8e9;background:#f6faff;color:var(--navy);border-radius:11px;padding:10px;font-weight:800}
+.records-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.records-head h2{margin:0}
+.search{margin-bottom:10px}
+.record{background:#fff;border:1px solid var(--line);border-left:6px solid #bbb;border-radius:14px;padding:12px;margin:9px 0;display:grid;grid-template-columns:1fr auto;gap:10px}
+.record.red{border-left-color:var(--red)} .record.yellow{border-left-color:var(--yellow)} .record.green{border-left-color:var(--green)}
+.rtitle{font-weight:900;font-size:15px}.meta{font-size:12px;color:#48617d;line-height:1.6}
+.dot{width:19px;height:19px;border-radius:50%;border:0;padding:0;display:inline-block;vertical-align:middle}
+.dot.red{background:var(--red)} .dot.yellow{background:var(--yellow)} .dot.green{background:var(--green)}
+.record-right{display:flex;align-items:flex-start;gap:6px}
+.chev{border:0;background:transparent;color:#1a4c83;font-size:25px;padding:0 3px}
+.actions{display:flex;gap:5px;margin-top:8px}
+.small{border:0;border-radius:8px;padding:7px 9px;font-size:12px;font-weight:800}
+.edit{background:#e8f2ff;color:var(--blue)} .del{background:#ffe8e9;color:#d51f2c}
+.status-menu{display:flex;gap:7px;margin-top:8px}
+.status-menu button{border:0;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:900}
+.sred{background:#ffe2e4;color:#c91d28}.syellow{background:#fff2c7;color:#8a6500}.sgreen{background:#dff6e9;color:#087d3b}
+.empty{text-align:center;color:var(--muted);padding:22px 8px;font-size:13px}
+footer{text-align:center;color:#64768a;font-size:11px;padding:18px 10px 25px}
+.overlay{display:none;position:fixed;inset:0;background:#062b4b55;z-index:50}
+.drawer{position:absolute;right:0;top:0;height:100%;width:min(340px,90%);background:#fff;padding:18px;box-shadow:-10px 0 35px #0003}
+.drawer h2{margin-top:5px}
+.menuitem{width:100%;border:0;background:#f4f8fd;color:var(--text);border-radius:12px;padding:13px;text-align:left;margin:6px 0;font-weight:800}
+.close{float:right;border:0;background:#eaf2fb;border-radius:10px;width:36px;height:36px;font-size:20px}
+.modal{display:none;position:fixed;inset:0;background:#062b4b66;z-index:60;align-items:flex-end;justify-content:center}
+.modalbox{width:min(520px,100%);background:#fff;border-radius:20px 20px 0 0;padding:18px;max-height:90vh;overflow:auto}
+.modal-actions{display:flex;gap:8px;margin-top:10px}.modal-actions button{flex:1}
+.trashrow{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:10px 0}
+@media(max-width:390px){.grid{grid-template-columns:1fr}.title{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="headrow">
+    <img class="logo" src="999-icon.png" alt="999">
+    <div><div class="title">999</div><div class="subtitle">Correção de Lançamentos</div></div>
+    <div class="head-actions">
+      <button class="iconbtn" id="shareTop" title="Compartilhar">↗</button>
+      <button class="iconbtn" id="menuBtn" title="Menu">⋮</button>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="panel">
+  <h2>＋ Novo lançamento</h2>
+  <form id="form">
+    <div class="grid">
+      <div class="field"><label>Endereço <span class="req">*</span></label><input id="endereco" required></div>
+      <div class="field"><label>Número <span class="req">*</span></label><input id="numero" required inputmode="numeric"></div>
+      <div class="field"><label>Medidor <span class="req">*</span></label><input id="medidor" required></div>
+      <div class="field"><label>Leitura <span class="req">*</span></label><input id="leitura" required inputmode="decimal"></div>
+      <div class="field"><label>Código de lançamento <span class="req">*</span></label><input id="codigo" required></div>
+      <div class="field"><label>Etapa <span class="req">*</span></label>
+        <select id="etapa" required><option value="">Selecione</option></select>
+      </div>
+    </div>
+    <div class="field"><label>Data <span class="req">*</span></label>
+      <div class="datewrap"><input id="data" type="date" required><span>📅</span></div>
+    </div>
+    <input id="photo" type="file" accept="image/*" capture="environment" hidden>
+    <button type="button" class="camera" id="cameraBtn">📸 Adicionar foto</button>
+    <div class="preview" id="preview"><img id="previewImg"><button type="button" class="remove-photo" id="removePhoto">×</button></div>
+    <button class="save" type="submit">💾 Salvar lançamento</button>
+    <div class="hint">Todo novo lançamento começa automaticamente como pendente.</div>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="records-head"><h2>Lançamentos</h2><span id="count">0</span></div>
+  <input class="search" id="search" placeholder="🔎 Buscar endereço, código, medidor...">
+  <div id="records"></div>
+</section>
+
+<footer>© 2026 Luís Ricardo de Almeida Siqueira — Todos os direitos reservados.</footer>
+</main>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="drawer">
+    <button class="close" id="closeMenu">×</button>
+    <h2>Menu</h2>
+    <button class="menuitem" id="shareApp">📲 Compartilhar app</button>
+    <button class="menuitem" id="shareInfo">📤 Compartilhar informações</button>
+    <button class="menuitem" id="exportData">📁 Exportar informações</button>
+    <button class="menuitem" id="openTrash">🗑️ Lixeira</button>
+  </div>
+</div>
+
+<div class="modal" id="editModal">
+ <div class="modalbox">
+  <h2>Editar lançamento <button class="close" id="closeEdit">×</button></h2>
+  <div id="editFields"></div>
+  <div class="modal-actions"><button class="save" id="saveEdit">Salvar</button><button class="secondary" id="deleteEdit">Excluir</button></div>
+ </div>
+</div>
+
+<div class="modal" id="trashModal">
+ <div class="modalbox">
+  <h2>Lixeira <button class="close" id="closeTrash">×</button></h2>
+  <div id="trashList"></div>
+ </div>
+</div>
+
+<script>
+const KEY='999_correcoes_v1', TRASH='999_lixeira_v1';
+let records=JSON.parse(localStorage.getItem(KEY)||'[]');
+let trash=JSON.parse(localStorage.getItem(TRASH)||'[]');
+let editId=null, photoData='';
+
+const $=id=>document.getElementById(id);
+const etapas=$('etapa');
+for(let i=1;i<=18;i++){let o=document.createElement('option');o.value=i;o.textContent=String(i).padStart(2,'0');etapas.appendChild(o)}
+$('data').value=new Date().toISOString().slice(0,10);
+
+function saveStore(){localStorage.setItem(KEY,JSON.stringify(records));localStorage.setItem(TRASH,JSON.stringify(trash));}
+function cls(status){return status==='Pendente'?'red':status==='Aguardando retorno'?'yellow':'green'}
+function daysLeft(date){
+  const d=new Date(date+'T00:00:00'); const now=new Date(); now.setHours(0,0,0,0);
+  return 3-Math.floor((now-d)/86400000);
+}
+function render(){
+  const q=$('search').value.toLowerCase().trim();
+  const list=records.filter(r=>Object.values(r).join(' ').toLowerCase().includes(q));
+  $('count').textContent=records.length;
+  if(!list.length){$('records').innerHTML='<div class="empty">Nenhum lançamento encontrado.</div>';return}
+  $('records').innerHTML=list.map(r=>{
+    const left=daysLeft(r.data);
+    const prazo=r.status==='Resolvido'?'Concluído':left<0?'Prazo vencido':`Restam ${left} dia${left===1?'':'s'}`;
+    return `<article class="record ${cls(r.status)}">
+      <div>
+        <div class="rtitle">${esc(r.endereco)}, ${esc(r.numero)}</div>
+        <div class="meta">${esc(r.codigo)} · Etapa ${String(r.etapa).padStart(2,'0')}<br>Medidor: ${esc(r.medidor)} · Leitura: ${esc(r.leitura)}<br>📅 ${fmt(r.data)} · ${prazo}</div>
+        ${r.photo?'<div class="meta">📸 Foto anexada</div>':''}
+        <div class="actions"><button class="small edit" onclick="editRecord('${r.id}')">✏️ Editar</button><button class="small del" onclick="deleteRecord('${r.id}')">🗑️ Excluir</button></div>
+      </div>
+      <div class="record-right">
+        <button class="dot ${cls(r.status)}" title="${r.status}" onclick="nextStatus('${r.id}')"></button>
+      </div>
+    </article>`;
+  }).join('');
+}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function fmt(v){return v.split('-').reverse().join('/')}
+function nextStatus(id){
+  const r=records.find(x=>x.id===id); if(!r)return;
+  r.status=r.status==='Pendente'?'Aguardando retorno':r.status==='Aguardando retorno'?'Resolvido':'Pendente';
+  saveStore();render();
+}
+function deleteRecord(id){
+  const r=records.find(x=>x.id===id);if(!r)return;
+  if(confirm('Enviar este lançamento para a lixeira?')){records=records.filter(x=>x.id!==id);trash.push(r);saveStore();render();}
+}
+function editRecord(id){
+  const r=records.find(x=>x.id===id);if(!r)return;editId=id;
+  $('editFields').innerHTML=`
+  <div class="field"><label>Endereço *</label><input id="e_end" value="${esc(r.endereco)}"></div>
+  <div class="grid"><div class="field"><label>Número *</label><input id="e_num" value="${esc(r.numero)}"></div><div class="field"><label>Medidor *</label><input id="e_med" value="${esc(r.medidor)}"></div></div>
+  <div class="grid"><div class="field"><label>Leitura *</label><input id="e_leit" value="${esc(r.leitura)}"></div><div class="field"><label>Código *</label><input id="e_cod" value="${esc(r.codigo)}"></div></div>
+  <div class="grid"><div class="field"><label>Etapa *</label><select id="e_et"></select></div><div class="field"><label>Data *</label><input id="e_data" type="date" value="${r.data}"></div></div>
+  <div class="field"><label>Situação</label><select id="e_status"><option>Pendente</option><option>Aguardando retorno</option><option>Resolvido</option></select></div>`;
+  const s=$('e_et');for(let i=1;i<=18;i++)s.add(new Option(String(i).padStart(2,'0'),i));s.value=r.etapa;$('e_status').value=r.status;
+  $('editModal').style.display='flex';
+}
+$('saveEdit').onclick=()=>{
+ const r=records.find(x=>x.id===editId);if(!r)return;
+ r.endereco=$('e_end').value.trim();r.numero=$('e_num').value.trim();r.medidor=$('e_med').value.trim();r.leitura=$('e_leit').value.trim();r.codigo=$('e_cod').value.trim();r.etapa=$('e_et').value;r.data=$('e_data').value;r.status=$('e_status').value;
+ if(!r.endereco||!r.numero||!r.medidor||!r.leitura||!r.codigo||!r.etapa||!r.data){alert('Preencha todos os campos obrigatórios.');return}
+ saveStore();$('editModal').style.display='none';render();
+};
+$('deleteEdit').onclick=()=>{if(editId){$('editModal').style.display='none';deleteRecord(editId)}};
+$('form').onsubmit=e=>{
+ e.preventDefault();
+ if(!e.target.reportValidity())return;
+ records.unshift({id:crypto.randomUUID(),endereco:$('endereco').value.trim(),numero:$('numero').value.trim(),medidor:$('medidor').value.trim(),leitura:$('leitura').value.trim(),codigo:$('codigo').value.trim(),etapa:$('etapa').value,data:$('data').value,status:'Pendente',photo:photoData});
+ saveStore();e.target.reset();$('data').value=new Date().toISOString().slice(0,10);photoData='';$('preview').style.display='none';render();window.scrollTo({top:0,behavior:'smooth'});
+};
+$('cameraBtn').onclick=()=>$('photo').click();
+$('photo').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{photoData=rd.result;$('previewImg').src=photoData;$('preview').style.display='block'};rd.readAsDataURL(f)};
+$('removePhoto').onclick=()=>{photoData='';$('photo').value='';$('preview').style.display='none'};
+$('search').oninput=render;
+
+function openMenu(){ $('overlay').style.display='block' } function closeMenu(){ $('overlay').style.display='none' }
+$('menuBtn').onclick=openMenu;$('closeMenu').onclick=closeMenu;$('overlay').onclick=e=>{if(e.target===$('overlay'))closeMenu()};
+async function share(text,title='999 — Correção de Lançamentos'){
+ if(navigator.share){try{await navigator.share({title,text,url:location.href})}catch{}}
+ else{await navigator.clipboard?.writeText(text+' '+location.href);alert('Informação copiada para compartilhar.')}
+}
+$('shareTop').onclick=()=>share('Confira o aplicativo 999 — Correção de Lançamentos.');
+$('shareApp').onclick=()=>{closeMenu();share('Conheça o aplicativo 999 — Correção de Lançamentos.')}
+$('shareInfo').onclick=()=>{closeMenu();share(records.map(r=>`${r.endereco}, ${r.numero} | Código ${r.codigo} | Etapa ${r.etapa} | ${r.status}`).join('\\n')||'Nenhum lançamento registrado.')};
+$('exportData').onclick=()=>{
+ closeMenu();const blob=new Blob([JSON.stringify(records,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='999-lancamentos.json';a.click();URL.revokeObjectURL(url)
+};
+function renderTrash(){
+ if(!trash.length){$('trashList').innerHTML='<div class="empty">A lixeira está vazia.</div>';return}
+ $('trashList').innerHTML=trash.map(r=>`<div class="trashrow"><div><b>${esc(r.endereco)}, ${esc(r.numero)}</b><br><small>${esc(r.codigo)} · Etapa ${r.etapa}</small></div><button class="small edit" onclick="restore('${r.id}')">Restaurar</button></div>`).join('');
+}
+function restore(id){const r=trash.find(x=>x.id===id);if(!r)return;trash=trash.filter(x=>x.id!==id);records.unshift(r);saveStore();renderTrash();render()}
+$('openTrash').onclick=()=>{closeMenu();renderTrash();$('trashModal').style.display='flex'};
+$('closeTrash').onclick=()=>$('trashModal').style.display='none';
+$('closeEdit').onclick=()=>$('editModal').style.display='none';
+render();
+</script>
+</body>
+</html>
