@@ -57,7 +57,9 @@ input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px #0758c915
 .dot{width:19px;height:19px;border-radius:50%;border:0;padding:0;display:inline-block;vertical-align:middle}
 .dot.red{background:var(--red)} .dot.yellow{background:var(--yellow)} .dot.green{background:var(--green)}
 .record-right{display:flex;align-items:flex-start;gap:6px}
-.chev{border:0;background:transparent;color:#1a4c83;font-size:25px;padding:0 3px}
+.next-btn{border:0;background:#eaf3ff;color:#0758c9;width:34px;height:34px;min-height:34px;border-radius:10px;font-size:22px;font-weight:900;line-height:1;padding:0;display:flex;align-items:center;justify-content:center}
+.next-btn:active{transform:scale(.94);background:#dcecff}
+.next-btn.done{background:#eef2f6;color:#9aa8b7;cursor:default}
 .actions{display:flex;gap:5px;margin-top:8px}
 .small{border:0;border-radius:8px;padding:7px 9px;font-size:12px;font-weight:800}
 .edit{background:#e8f2ff;color:var(--blue)} .del{background:#ffe8e9;color:#d51f2c}
@@ -75,7 +77,7 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:18px 10px 25px}
 .modalbox{width:min(520px,100%);background:#fff;border-radius:20px 20px 0 0;padding:18px;max-height:90vh;overflow:auto}
 .modal-actions{display:flex;gap:8px;margin-top:10px}.modal-actions button{flex:1}
 .trashrow{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:10px 0}
-@media(max-width:390px){.grid{grid-template-columns:1fr}.title{font-size:20px}}
+@media(max-width:390px){.grid{grid-template-columns:1fr}.title{font-size:20px}.next-btn{width:30px;height:30px;font-size:20px}}
 </style>
 </head>
 <body>
@@ -185,7 +187,10 @@ function render(){
         <div class="actions"><button class="small edit" onclick="editRecord('${r.id}')">✏️ Editar</button><button class="small del" onclick="deleteRecord('${r.id}')">🗑️ Excluir</button></div>
       </div>
       <div class="record-right">
-        <button class="dot ${cls(r.status)}" title="${r.status}" onclick="nextStatus('${r.id}')"></button>
+        <button class="dot ${cls(r.status)}" title="${r.status}"></button>
+        ${r.status!=='Resolvido'
+          ? `<button class="next-btn" title="Avançar para ${r.status==='Pendente'?'Aguardando retorno':'Resolvido'}" onclick="nextStatus('${r.id}')">›</button>`
+          : `<button class="next-btn done" title="Resolvido" disabled>✓</button>`}
       </div>
     </article>`;
   }).join('');
