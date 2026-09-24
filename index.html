@@ -141,7 +141,27 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
 .trashrow{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:10px 0;font-size:13px}
 
 [hidden]{display:none!important}
+/* Mapa e localização */
+.mapa-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mapa-head h2{margin:0}
+.mapa-toggle,.loc-mini{border:0;background:#e8f2ff;color:var(--blue);border-radius:9px;padding:7px 11px;font-weight:800;font-size:12px}
+.loc-mini:disabled{opacity:.6}
+#mapaBox{margin-top:10px}
+#mapa{height:300px;border-radius:12px;border:1px solid var(--line);z-index:1;background:#dfe9f5}
+.mapa-info{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.mapa-info:empty{display:none}
+.mapa-legenda span{display:inline-flex;align-items:center;gap:4px;margin-right:8px}
+.mapa-legenda i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.loc-line{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);background:#f4f8fd;border-radius:10px;padding:7px 9px;margin-bottom:9px}
+.loc-line.ok{color:#087d3b;background:#e9f8f0}
+.loc-line button{border:1px solid var(--line);background:#fff;color:var(--blue);border-radius:8px;padding:5px 8px;font-size:11.5px;font-weight:800;white-space:nowrap}
+.ir{background:#e9f8f0;color:#087d3b}
+.pop{font-size:12px;line-height:1.5}.pop b{font-size:13px}
+.pop-links{display:flex;gap:5px;margin-top:6px}
+.pop-links a{flex:1;text-align:center;background:#e8f2ff;color:#0758c9!important;border-radius:7px;padding:5px 6px;font-weight:800;text-decoration:none;font-size:11.5px}
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -175,12 +195,25 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
       <div class="field"><label>Etapa <span class="req">*</span></label><select id="etapa"><option value="">Selecione</option></select></div>
       <div class="field"><label>Data <span class="req">*</span></label><input id="data" type="date"></div>
     </div>
+    <div class="loc-line" id="locLine"><span id="locTxt">📍 Ao tocar em Endereço, o app pega a localização</span><button type="button" id="locBtn">Pegar agora</button></div>
     <input id="photo" type="file" accept="image/*" capture="environment" hidden>
     <button type="button" class="camera" id="cameraBtn">📸 Adicionar foto</button>
     <div class="preview" id="preview"><img id="previewImg" alt="Foto do apontamento"><button type="button" class="remove-photo" id="removePhoto" aria-label="Remover foto">×</button></div>
     <button class="save" type="submit">💾 Salvar apontamento</button>
     <div class="hint">Todo novo apontamento começa como Esperando. Com 3 dias, aparece o aviso para buscar.</div>
   </form>
+</section>
+
+<section class="panel">
+  <div class="mapa-head"><h2>🗺️ Mapa</h2><button class="mapa-toggle" id="mapaToggle" type="button">Mostrar</button></div>
+  <div id="mapaBox" hidden>
+    <div id="mapa"></div>
+    <div class="mapa-info">
+      <div class="mapa-legenda"><span><i style="background:#ef3340"></i>Esperando</span><span><i style="background:#f5b900"></i>Execução</span><span><i style="background:#18a957"></i>Executado</span></div>
+      <button class="loc-mini" id="ondeEstou" type="button">📍 Onde estou</button>
+    </div>
+    <div class="mapa-info" id="semLocInfo"></div>
+  </div>
 </section>
 
 <section class="panel">
@@ -247,7 +280,7 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
    CONFIGURAÇÃO GERAL
    ========================================================= */
 const APP_NOME='Apontamento';
-const APP_VERSAO='2.3';          // mude aqui a cada atualização
+const APP_VERSAO='2.4';          // mude aqui a cada atualização
 const PRAZO_DIAS=3;              // dias até o aviso de buscar
 const REPO_GITHUB='Correcao-999'; // ⚠️ só para o desenvolvedor: nome do repositório no GitHub
 
@@ -332,7 +365,7 @@ for(let i=1;i<=18;i++){
   $('filtroEtapa').add(new Option('Etapa '+pad(i),i));
 }
 $('filtroEtapa').value=localStorage.getItem(FILTRO_KEY)||'';
-$('filtroEtapa').onchange=()=>{localStorage.setItem(FILTRO_KEY,$('filtroEtapa').value);render();};
+$('filtroEtapa').onchange=()=>{precisaAjustar=true;localStorage.setItem(FILTRO_KEY,$('filtroEtapa').value);render();};
 $('data').value=hojeLocal();
 
 /* =========================================================
@@ -356,7 +389,7 @@ function card(r){
       <div class="rtitle"><span class="tipo ${r.tipo==='REP'?'rep':''}">${r.tipo}</span>${esc(r.endereco)}, ${esc(r.numero)}</div>
       <div class="meta">Etapa ${pad(r.etapa)}<br>Medidor: ${esc(r.medidor)} · Leitura: ${r.leitura?esc(r.leitura):'<i>sem leitura</i>'}<br>📅 ${fmt(r.data)} · <span class="prazo ${p.c}">${p.txt}</span></div>
       ${r.photo?'<div class="meta">📸 Foto anexada</div>':''}
-      <div class="actions"><button class="small edit" onclick="editRecord('${r.id}')">✏️ Editar</button><button class="small del" onclick="deleteRecord('${r.id}')">🗑️ Excluir</button></div>
+      <div class="actions"><button class="small edit" onclick="editRecord('${r.id}')">✏️ Editar</button><button class="small ir" onclick="abrirRota('${r.id}')">📍 Ir</button><button class="small del" onclick="deleteRecord('${r.id}')">🗑️ Excluir</button></div>
     </div>
     <div class="record-right">
       ${prox
@@ -384,6 +417,7 @@ function render(){
   );
   $('count').textContent=base.length;
   renderAviso();
+  atualizarMapa(base);
 
   if(!base.length){
     $('records').innerHTML=`<div class="empty">${f?'Nenhum apontamento na Etapa '+pad(f)+'.':'Nenhum apontamento encontrado.'}</div>`;
@@ -438,7 +472,9 @@ function editRecord(id){
     <div class="field"><label>Leitura</label><input id="e_leit" inputmode="decimal" value="${esc(r.leitura)}"></div>
     <div class="field"><label>Etapa *</label><select id="e_et"></select></div>
     <div class="field"><label>Data *</label><input id="e_data" type="date" value="${r.data}"></div>
-  </div>`;
+  </div>
+  <div class="loc-line ${r.loc?'ok':''}"><span id="e_locTxt">${r.loc?(r.loc.aprox?'📍 Local aproximado (pelo endereço)':'📍 Tem localização'):'📍 Sem localização'}</span><button type="button" onclick="editPegarLoc()">Usar local atual</button></div>`;
+  editLoc=null;
   const s=$('e_et');for(let i=1;i<=18;i++)s.add(new Option(pad(i),i));
   s.value=r.etapa;$('e_status').value=r.status;$('e_tipo').value=r.tipo;
   $('editModal').style.display='flex';
@@ -447,6 +483,7 @@ $('saveEdit').onclick=()=>{
   const r=records.find(x=>x.id===editId);if(!r)return;
   const n={tipo:$('e_tipo').value,endereco:$('e_end').value.trim(),numero:$('e_num').value.trim(),medidor:$('e_med').value.trim(),leitura:$('e_leit').value.trim(),etapa:$('e_et').value,data:$('e_data').value,status:$('e_status').value};
   if(!n.endereco||!n.numero||!n.medidor||!n.etapa||!n.data){alert('Preencha todos os campos obrigatórios.');return}
+  if(editLoc) n.loc=editLoc;
   Object.assign(r,n);
   saveStore();$('editModal').style.display='none';render();
 };
@@ -468,12 +505,13 @@ $('form').onsubmit=e=>{
     endereco:$('endereco').value.trim(),numero:$('numero').value.trim(),
     medidor:$('medidor').value.trim(),leitura:$('leitura').value.trim(),
     etapa:$('etapa').value,data:$('data').value,
-    status:'Esperando',photo:photoData
+    status:'Esperando',photo:photoData,loc:locAtual
   };
   records.unshift(novo);
   saveStore();
   // Mostra a lista já na etapa do lançamento
   $('filtroEtapa').value=novo.etapa; localStorage.setItem(FILTRO_KEY,novo.etapa);
+  precisaAjustar=true;resetLoc();
   e.target.reset();$('data').value=hojeLocal();photoData='';$('preview').style.display='none';
   render();window.scrollTo({top:0,behavior:'smooth'});
 };
@@ -516,8 +554,8 @@ $('exportCSV').onclick=()=>{
   const lst=records.filter(r=>!f||String(r.etapa)===f)
     .sort((a,b)=>Number(a.etapa)-Number(b.etapa)||STATUS.indexOf(a.status)-STATUS.indexOf(b.status)||a.data.localeCompare(b.data));
   if(!lst.length){alert(f?'Nenhum apontamento na Etapa '+pad(f)+' para exportar.':'Não há apontamentos para exportar.');return}
-  const linhas=[['Tipo','Endereço','Número','Medidor','Leitura','Etapa','Data','Situação','Prazo','Foto']];
-  lst.forEach(r=>linhas.push([r.tipo,r.endereco,r.numero,r.medidor,r.leitura,pad(r.etapa),fmt(r.data),r.status,prazoInfo(r).txt.replace('⚠️ ',''),r.photo?'Sim':'Não']));
+  const linhas=[['Tipo','Endereço','Número','Medidor','Leitura','Etapa','Data','Situação','Prazo','Foto','Latitude','Longitude']];
+  lst.forEach(r=>linhas.push([r.tipo,r.endereco,r.numero,r.medidor,r.leitura,pad(r.etapa),fmt(r.data),r.status,prazoInfo(r).txt.replace('⚠️ ',''),r.photo?'Sim':'Não',r.loc?String(r.loc.lat).replace('.',','):'',r.loc?String(r.loc.lng).replace('.',','):'']));
   const csv='\ufeff'+linhas.map(l=>l.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download='apontamento'+(f?'-etapa-'+pad(f):'')+'-'+hojeLocal()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -559,10 +597,122 @@ $('updateApp').onclick=atualizarApp;
 /* =========================================================
    INÍCIO
    ========================================================= */
+/* =========================================================
+   LOCALIZAÇÃO E MAPA
+   ========================================================= */
+const CIDADE='Tatuí - SP';
+const CENTRO_CIDADE=[-23.3556,-47.8569];
+const COR_STATUS={'Esperando':'#ef3340','Em execução':'#f5b900','Executado':'#18a957'};
+let locAtual=null, pegandoLoc=false, editLoc=null;
+let mapa=null, camada=null, marcaEu=null, ultimaBase=[], precisaAjustar=true;
+let mapaAberto=localStorage.getItem('apontamento_mapa_aberto')==='1';
+
+function posicao(ok,erro){
+  if(!navigator.geolocation){erro({code:0});return}
+  navigator.geolocation.getCurrentPosition(p=>ok({lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6),acc:Math.round(p.coords.accuracy)}),erro,{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+}
+function msgErroLoc(e){return e&&e.code===1?'📍 Localização bloqueada — libere nos Ajustes':'📍 Não consegui a localização'}
+
+function pegarLocalizacao(forcar){
+  if(pegandoLoc||(locAtual&&!forcar))return;
+  pegandoLoc=true;$('locLine').className='loc-line';$('locTxt').textContent='📍 Pegando localização...';
+  posicao(l=>{
+    pegandoLoc=false;locAtual=l;
+    $('locLine').className='loc-line ok';$('locTxt').textContent=`📍 Localização pega (±${l.acc} m)`;$('locBtn').textContent='Pegar de novo';
+  },e=>{pegandoLoc=false;$('locTxt').textContent=msgErroLoc(e);$('locBtn').textContent='Tentar de novo';});
+}
+function resetLoc(){
+  locAtual=null;$('locLine').className='loc-line';
+  $('locTxt').textContent='📍 Ao tocar em Endereço, o app pega a localização';$('locBtn').textContent='Pegar agora';
+}
+$('endereco').addEventListener('focus',()=>pegarLocalizacao(false));
+$('locBtn').onclick=()=>pegarLocalizacao(true);
+
+function editPegarLoc(){
+  $('e_locTxt').textContent='📍 Pegando localização...';
+  posicao(l=>{editLoc=l;$('e_locTxt').textContent=`📍 Local atual pego (±${l.acc} m) — toque em Salvar`;},e=>{$('e_locTxt').textContent=msgErroLoc(e);});
+}
+
+function destino(r){return r.loc?`${r.loc.lat},${r.loc.lng}`:encodeURIComponent(`${r.endereco}, ${r.numero}, ${CIDADE}`)}
+function abrirRota(id){
+  const r=records.find(x=>x.id===id);if(!r)return;
+  window.open('https://maps.apple.com/?daddr='+destino(r)+'&dirflg=d','_blank');
+}
+function linksRota(r){
+  const d=destino(r);
+  return `<a href="https://maps.apple.com/?daddr=${d}&dirflg=d" target="_blank">Maps</a><a href="https://www.google.com/maps/dir/?api=1&destination=${d}" target="_blank">Google</a>${r.loc?`<a href="https://waze.com/ul?ll=${d}&navigate=yes" target="_blank">Waze</a>`:''}`;
+}
+
+function iniciarMapa(){
+  if(mapa)return true;
+  if(typeof L==='undefined')return false;
+  mapa=L.map('mapa').setView(CENTRO_CIDADE,13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(mapa);
+  camada=L.layerGroup().addTo(mapa);
+  return true;
+}
+function atualizarMapa(base){
+  ultimaBase=base;
+  if(!mapaAberto)return;
+  if(!iniciarMapa()){$('semLocInfo').textContent='Sem internet: o mapa não carregou.';return}
+  camada.clearLayers();
+  const com=base.filter(r=>r.loc), sem=base.length-com.length;
+  com.forEach(r=>{
+    const p=prazoInfo(r);
+    L.circleMarker([r.loc.lat,r.loc.lng],{radius:p.late?11:9,color:p.late?'#7a0010':'#ffffff',weight:p.late?3:2,fillColor:COR_STATUS[r.status],fillOpacity:1})
+      .bindPopup(`<div class="pop"><b>[${r.tipo}] ${esc(r.endereco)}, ${esc(r.numero)}</b><br>Medidor: ${esc(r.medidor)} · Etapa ${pad(r.etapa)}<br>${r.status} · ${p.txt}${r.loc.aprox?'<br><i>Posição aproximada</i>':''}<div class="pop-links">${linksRota(r)}</div></div>`)
+      .addTo(camada);
+  });
+  if(precisaAjustar){
+    if(com.length) mapa.fitBounds(L.latLngBounds(com.map(r=>[r.loc.lat,r.loc.lng])).pad(0.2),{maxZoom:17});
+    else mapa.setView(CENTRO_CIDADE,13);
+    precisaAjustar=false;
+  }
+  $('semLocInfo').innerHTML=sem?`<span>${sem} sem localização</span><button class="loc-mini" id="geoBtn" type="button" onclick="localizarPorEndereco()">🔎 Achar pelo endereço</button>`:'';
+  setTimeout(()=>mapa.invalidateSize(),60);
+}
+
+// Procura no mapa os apontamentos sem GPS, usando endereço + número + cidade
+async function localizarPorEndereco(){
+  const sem=ultimaBase.filter(r=>!r.loc);if(!sem.length)return;
+  const b=$('geoBtn');if(b)b.disabled=true;
+  let ok=0;
+  for(let i=0;i<sem.length;i++){
+    const r=sem[i];
+    if(b)b.textContent=`Procurando ${i+1}/${sem.length}...`;
+    try{
+      const q=encodeURIComponent(`${r.endereco}, ${r.numero}, ${CIDADE}, Brasil`);
+      const resp=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${q}`,{headers:{'Accept-Language':'pt-BR'}});
+      const j=await resp.json();
+      if(j&&j[0]){r.loc={lat:+(+j[0].lat).toFixed(6),lng:+(+j[0].lon).toFixed(6),acc:null,aprox:true};ok++;}
+    }catch(e){}
+    await new Promise(res=>setTimeout(res,1100));
+  }
+  saveStore();precisaAjustar=true;render();
+  alert(`${ok} de ${sem.length} encontrado${sem.length===1?'':'s'} pelo endereço.\nA posição é aproximada; se quiser a exata, use ✏️ Editar → "Usar local atual" quando estiver no endereço.`);
+}
+
+function aplicarMapaAberto(){$('mapaBox').hidden=!mapaAberto;$('mapaToggle').textContent=mapaAberto?'Esconder':'Mostrar';}
+$('mapaToggle').onclick=()=>{
+  mapaAberto=!mapaAberto;localStorage.setItem('apontamento_mapa_aberto',mapaAberto?'1':'0');
+  aplicarMapaAberto();precisaAjustar=true;atualizarMapa(ultimaBase);
+};
+$('ondeEstou').onclick=()=>{
+  if(!iniciarMapa())return;
+  const b=$('ondeEstou');b.disabled=true;b.textContent='📍 Procurando...';
+  posicao(l=>{
+    b.disabled=false;b.textContent='📍 Onde estou';
+    if(marcaEu)mapa.removeLayer(marcaEu);
+    marcaEu=L.circleMarker([l.lat,l.lng],{radius:9,color:'#fff',weight:3,fillColor:'#0b75e8',fillOpacity:1}).addTo(mapa).bindPopup('Você está aqui');
+    mapa.setView([l.lat,l.lng],17);
+  },e=>{b.disabled=false;b.textContent='📍 Onde estou';alert(msgErroLoc(e).replace('📍 ',''));});
+};
+
 $('versaoRodape').textContent=APP_NOME+' v'+APP_VERSAO;
 $('versaoMenu').textContent=APP_NOME+' • versão '+APP_VERSAO;
 saveStore();      // grava a conversão dos lançamentos antigos
 aplicarPerfil();
+aplicarMapaAberto();
 render();
 </script>
 </body>
