@@ -1,147 +1,235 @@
 <!DOCTYPE html>
+<!--
+  ============================================================
+  ⚠️ AVISO PARA O DESENVOLVEDOR
+  O app se chama "Apontamento", mas o repositório no GitHub
+  continua sendo o do 999:  Corre-o-999
+  Suba SEMPRE este arquivo como index.html dentro do Corre-o-999.
+  Não crie repositório novo com o nome Apontamento, senão o link
+  muda e o atalho do celular para de funcionar.
+  ============================================================
+-->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- maximum-scale=1 evita o zoom automático do iPhone ao tocar nos campos (o zoom com os dedos continua funcionando) -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0758c9">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="999">
+<meta name="apple-mobile-web-app-title" content="Apontamento">
+<meta name="application-name" content="Apontamento">
 <link rel="icon" type="image/png" href="999-icon.png">
 <link rel="apple-touch-icon" href="999-icon.png">
-<title>999 — Correção de Lançamentos</title>
+<title>Apontamento — Correção de Lançamentos</title>
 <style>
 :root{
   --blue:#0758c9; --blue2:#0b75e8; --navy:#063b88;
   --bg:#eef4fb; --card:#fff; --line:#d8e3f1; --text:#102a4a;
   --red:#ef3340; --yellow:#f5b900; --green:#18a957; --muted:#6c7d91;
+  --rep:#e0212f;
 }
 *{box-sizing:border-box}
-body{margin:0;background:linear-gradient(#eaf2fb,#f7f9fc);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text)}
+body{margin:0;background:linear-gradient(#eaf2fb,#f7f9fc);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);font-size:14px}
 button,input,select{font:inherit}
 button{cursor:pointer}
 .app{max-width:520px;margin:auto;min-height:100vh;background:var(--bg);box-shadow:0 0 35px #0b3a7020}
-header{background:linear-gradient(135deg,var(--navy),var(--blue2));color:#fff;padding:18px 18px 16px;position:sticky;top:0;z-index:20}
-.headrow{display:flex;align-items:center;gap:12px}
-.logo{width:48px;height:48px;border-radius:13px;background:#fff;padding:4px;object-fit:cover}
-.title{font-weight:800;font-size:23px;line-height:1}
-.subtitle{font-size:12px;opacity:.88;margin-top:5px}
-.head-actions{margin-left:auto;display:flex;gap:7px}
-.iconbtn{border:0;background:#ffffff1f;color:#fff;width:40px;height:40px;border-radius:12px;font-size:22px}
-main{padding:14px 14px 90px}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:0 5px 16px #164a7b10;margin-bottom:12px}
-h2{font-size:19px;margin:0 0 14px}
-.grid{display:grid;grid-template-columns:1.35fr .65fr;gap:11px}
-.field{margin-bottom:10px}
-label{display:block;font-size:13px;font-weight:800;margin-bottom:5px}
+
+/* Cabeçalho */
+header{background:linear-gradient(135deg,var(--navy),var(--blue2));color:#fff;padding:12px 14px;position:sticky;top:0;z-index:20}
+.headrow{display:flex;align-items:center;gap:10px}
+.logo{width:40px;height:40px;border-radius:11px;background:#fff;padding:3px;object-fit:cover}
+.title{font-weight:800;font-size:19px;line-height:1}
+.subtitle{font-size:11px;opacity:.88;margin-top:4px}
+.head-actions{margin-left:auto;display:flex;gap:6px}
+.iconbtn{border:0;background:#ffffff1f;color:#fff;width:36px;height:36px;border-radius:10px;font-size:18px;display:flex;align-items:center;justify-content:center;padding:0}
+.iconbtn:disabled{opacity:.6}
+
+main{padding:12px 12px 70px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px;box-shadow:0 5px 16px #164a7b10;margin-bottom:12px}
+h2{font-size:16px;margin:0 0 11px}
+
+/* Formulário */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.grid.end-num{grid-template-columns:1fr 82px}
+.field{margin-bottom:9px;min-width:0}
+label{display:block;font-size:12px;font-weight:800;margin-bottom:4px}
 .req{color:#e22;font-weight:900}
-input,select{width:100%;border:1px solid #b9cbe0;border-radius:11px;padding:12px 11px;background:#fbfdff;color:var(--text);outline:none}
+input,select{width:100%;min-width:0;height:40px;border:1px solid #b9cbe0;border-radius:10px;padding:0 10px;background:#fbfdff;color:var(--text);outline:none;font-size:14px;-webkit-appearance:none;appearance:none}
 input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px #0758c915}
-.datewrap{position:relative}
-.datewrap input{padding-right:43px}
-.datewrap span{position:absolute;right:11px;top:10px;font-size:22px;pointer-events:none}
-.camera{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:1px dashed #8eb1d7;background:#eef6ff;color:var(--blue);padding:11px;border-radius:11px;font-weight:800}
+/* Setinha pequena no seletor */
+select{padding-right:26px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%230758c9' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:10px 6px}
+/* Data alinhada e sem vazar para fora do cartão no iPhone */
+input[type=date]{display:block;text-align:left;line-height:40px}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
+
+/* Tipo: 999 ou REP */
+.tipo-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#eef4fb;border:1px solid var(--line);border-radius:11px;padding:4px;margin-bottom:10px}
+.tipo-toggle button{border:0;border-radius:8px;height:34px;font-weight:900;font-size:13px;background:transparent;color:var(--muted)}
+.tipo-toggle button.on[data-tipo="999"]{background:var(--blue);color:#fff}
+.tipo-toggle button.on[data-tipo="REP"]{background:var(--rep);color:#fff}
+.tipo-toggle button[data-tipo="REP"]{color:var(--rep)}
+
+.camera{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;border:1px dashed #8eb1d7;background:#eef6ff;color:var(--blue);height:40px;border-radius:10px;font-weight:800;font-size:13px}
 .preview{display:none;margin-top:8px;position:relative}
-.preview img{width:100%;max-height:220px;object-fit:cover;border-radius:12px}
-.remove-photo{position:absolute;right:8px;top:8px;border:0;background:#ef3340;color:#fff;border-radius:50%;width:34px;height:34px}
-.save{width:100%;border:0;border-radius:13px;padding:14px;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;font-weight:900;font-size:16px;margin-top:4px}
-.hint{font-size:11px;color:var(--muted);text-align:center;margin-top:8px}
-.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.secondary{border:1px solid #c9d8e9;background:#f6faff;color:var(--navy);border-radius:11px;padding:10px;font-weight:800}
-.records-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.preview img{width:100%;max-height:200px;object-fit:cover;border-radius:12px}
+.remove-photo{position:absolute;right:8px;top:8px;border:0;background:#ef3340;color:#fff;border-radius:50%;width:32px;height:32px}
+.save{width:100%;border:0;border-radius:12px;height:44px;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;font-weight:900;font-size:15px;margin-top:8px}
+.hint{font-size:11px;color:var(--muted);text-align:center;margin-top:7px}
+.secondary{border:1px solid #c9d8e9;background:#f6faff;color:var(--navy);border-radius:10px;height:42px;font-weight:800}
+
+/* Lista */
+.records-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
 .records-head h2{margin:0}
-.search{margin-bottom:10px}
-.record{background:#fff;border:1px solid var(--line);border-left:6px solid #bbb;border-radius:14px;padding:12px;margin:9px 0;display:grid;grid-template-columns:1fr auto;gap:10px}
-.record.red{border-left-color:var(--red)} .record.yellow{border-left-color:var(--yellow)} .record.green{border-left-color:var(--green)}
-.rtitle{font-weight:900;font-size:15px}.meta{font-size:12px;color:#48617d;line-height:1.6}
-.dot{width:19px;height:19px;border-radius:50%;border:0;padding:0;display:inline-block;vertical-align:middle}
-.dot.red{background:var(--red)} .dot.yellow{background:var(--yellow)} .dot.green{background:var(--green)}
-.record-right{display:flex;align-items:flex-start;gap:6px}
-.next-btn{border:0;background:#eaf3ff;color:#0758c9;width:34px;height:34px;min-height:34px;border-radius:10px;font-size:22px;font-weight:900;line-height:1;padding:0;display:flex;align-items:center;justify-content:center}
-.next-btn:active{transform:scale(.94);background:#dcecff}
-.next-btn.done{background:#eef2f6;color:#9aa8b7;cursor:default}
-.actions{display:flex;gap:5px;margin-top:8px}
-.small{border:0;border-radius:8px;padding:7px 9px;font-size:12px;font-weight:800}
-.edit{background:#e8f2ff;color:var(--blue)} .del{background:#ffe8e9;color:#d51f2c}
-.status-menu{display:flex;gap:7px;margin-top:8px}
-.status-menu button{border:0;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:900}
-.sred{background:#ffe2e4;color:#c91d28}.syellow{background:#fff2c7;color:#8a6500}.sgreen{background:#dff6e9;color:#087d3b}
-.empty{text-align:center;color:var(--muted);padding:22px 8px;font-size:13px}
-footer{text-align:center;color:#64768a;font-size:11px;padding:18px 10px 25px}
+.count{background:#e8f2ff;color:var(--blue);border-radius:999px;padding:3px 9px;font-size:12px;font-weight:800}
+.filtros{display:grid;grid-template-columns:118px 1fr;gap:8px;margin-bottom:10px}
+.filtros select{background-color:#e8f2ff;color:var(--blue);font-weight:800;border-color:#bcd3ef}
+
+.aviso{display:none;background:#fff1f2;border:1px solid #ffc9cd;color:#a3141f;border-radius:12px;padding:9px 11px;font-size:12px;line-height:1.45;margin-bottom:10px}
+.aviso b{font-size:13px}
+
+.grupo{margin-top:12px}
+.grupo:first-child{margin-top:0}
+.grupo-head{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:900;padding:6px 2px;border-bottom:2px solid var(--line);list-style:none}
+.grupo-head::-webkit-details-marker{display:none}
+.grupo-head .n{font-size:11px;border-radius:999px;padding:2px 8px;font-weight:800}
+.g-esperando .grupo-head{border-color:#ffc9cd}.g-esperando .n{background:#ffe2e4;color:#c91d28}
+.g-execucao .grupo-head{border-color:#ffe39a}.g-execucao .n{background:#fff2c7;color:#8a6500}
+.g-executado .grupo-head{border-color:#bfe9d1;cursor:pointer}.g-executado .n{background:#dff6e9;color:#087d3b}
+.g-executado .grupo-head::after{content:"▾";margin-left:6px;color:var(--muted);font-size:11px}
+.g-executado[open] .grupo-head::after{content:"▴"}
+.grupo-head .lbl{flex:1}
+.vazio-grupo{font-size:12px;color:var(--muted);padding:9px 2px}
+
+.record{background:#fff;border:1px solid var(--line);border-left:5px solid #bbb;border-radius:12px;padding:10px;margin:8px 0;display:grid;grid-template-columns:1fr auto;gap:8px}
+.record.red{border-left-color:var(--red)}.record.yellow{border-left-color:var(--yellow)}.record.green{border-left-color:var(--green)}
+.record.late{background:#fff8f8;border-color:#ffc9cd}
+.rtitle{font-weight:900;font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tipo{font-size:10px;font-weight:900;border-radius:6px;padding:2px 6px;color:#fff;background:var(--blue)}
+.tipo.rep{background:var(--rep)}
+.meta{font-size:12px;color:#48617d;line-height:1.55;margin-top:2px}
+.prazo{font-weight:800}
+.prazo.ok{color:#48617d}.prazo.hoje{color:#c26a00}.prazo.atrasado{color:#c91d28}.prazo.fim{color:#087d3b}
+.record-right{display:flex;align-items:flex-start}
+.next-btn{border:0;background:#eaf3ff;color:#0758c9;min-width:32px;height:32px;border-radius:9px;font-size:12px;font-weight:900;line-height:1;padding:0 8px;display:flex;align-items:center;justify-content:center;white-space:nowrap}
+.next-btn:active{transform:scale(.95);background:#dcecff}
+.next-btn.done{background:#eef2f6;color:#9aa8b7;cursor:default;font-size:16px}
+.actions{display:flex;gap:5px;margin-top:7px}
+.small{border:0;border-radius:8px;padding:6px 9px;font-size:11.5px;font-weight:800}
+.edit{background:#e8f2ff;color:var(--blue)}.del{background:#ffe8e9;color:#d51f2c}
+.empty{text-align:center;color:var(--muted);padding:20px 8px;font-size:13px}
+
+footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env(safe-area-inset-bottom,0px) + 22px);line-height:1.6}
+.versao{display:inline-block;background:#e8f2ff;color:var(--blue);border-radius:999px;padding:2px 9px;font-weight:800;margin-bottom:4px}
+
+/* Menu lateral */
 .overlay{display:none;position:fixed;inset:0;background:#062b4b55;z-index:50}
-.drawer{position:absolute;right:0;top:0;height:100%;width:min(340px,90%);background:#fff;padding:18px;box-shadow:-10px 0 35px #0003}
+.drawer{position:absolute;right:0;top:0;height:100%;width:min(320px,88%);background:#fff;padding:16px;padding-top:calc(env(safe-area-inset-top,0px) + 16px);box-shadow:-10px 0 35px #0003;overflow:auto}
 .drawer h2{margin-top:5px}
-.menuitem{width:100%;border:0;background:#f4f8fd;color:var(--text);border-radius:12px;padding:13px;text-align:left;margin:6px 0;font-weight:800}
-.close{float:right;border:0;background:#eaf2fb;border-radius:10px;width:36px;height:36px;font-size:20px}
+.menuitem{width:100%;border:0;background:#f4f8fd;color:var(--text);border-radius:11px;padding:12px;text-align:left;margin:5px 0;font-weight:800;font-size:13.5px}
+.menu-sep{font-size:11px;color:var(--muted);font-weight:800;margin:14px 2px 4px}
+.perfil-box{background:#f4f8fd;border-radius:11px;padding:10px 12px;font-size:12px;color:#48617d;margin-bottom:6px}
+.perfil-box b{color:var(--text)}
+.menu-versao{font-size:11px;color:var(--muted);text-align:center;margin-top:16px}
+.close{float:right;border:0;background:#eaf2fb;border-radius:10px;width:34px;height:34px;font-size:19px}
+
+/* Modais */
 .modal{display:none;position:fixed;inset:0;background:#062b4b66;z-index:60;align-items:flex-end;justify-content:center}
-.modalbox{width:min(520px,100%);background:#fff;border-radius:20px 20px 0 0;padding:18px;max-height:90vh;overflow:auto}
-.modal-actions{display:flex;gap:8px;margin-top:10px}.modal-actions button{flex:1}
-.trashrow{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:10px 0}
-@media(max-width:390px){.grid{grid-template-columns:1fr}.title{font-size:20px}.next-btn{width:30px;height:30px;font-size:20px}}
+.modalbox{width:min(520px,100%);background:#fff;border-radius:20px 20px 0 0;padding:16px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px);max-height:90vh;overflow:auto}
+.modal-actions{display:flex;gap:8px;margin-top:10px}.modal-actions button{flex:1;margin-top:0}
+.trashrow{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:10px 0;font-size:13px}
+
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
 <div class="app">
 <header>
   <div class="headrow">
-    <img class="logo" src="999-icon.png" alt="999">
-    <div><div class="title">999</div><div class="subtitle">Correção de Lançamentos</div></div>
+    <img class="logo" src="999-icon.png" alt="Apontamento">
+    <div><div class="title">Apontamento</div><div class="subtitle">Correção de Lançamentos · 999 e REP</div></div>
     <div class="head-actions">
-      <button class="iconbtn" id="shareTop" title="Compartilhar">↗</button>
-      <button class="iconbtn" id="menuBtn" title="Menu">⋮</button>
+      <button class="iconbtn" id="updateTop" title="Atualizar app" aria-label="Atualizar app">🔄</button>
+      <button class="iconbtn" id="shareTop" title="Compartilhar" aria-label="Compartilhar">↗</button>
+      <button class="iconbtn" id="menuBtn" title="Menu" aria-label="Menu">⋮</button>
     </div>
   </div>
 </header>
 
 <main>
 <section class="panel">
-  <h2>＋ Novo lançamento</h2>
-  <form id="form">
-    <div class="grid">
-      <div class="field"><label>Endereço <span class="req">*</span></label><input id="endereco" required></div>
-      <div class="field"><label>Número <span class="req">*</span></label><input id="numero" required inputmode="numeric"></div>
-      <div class="field"><label>Medidor <span class="req">*</span></label><input id="medidor" required></div>
-      <div class="field"><label>Leitura <span class="req">*</span></label><input id="leitura" required inputmode="decimal"></div>
-      <div class="field"><label>Código de lançamento <span class="req">*</span></label><input id="codigo" required></div>
-      <div class="field"><label>Etapa <span class="req">*</span></label>
-        <select id="etapa" required><option value="">Selecione</option></select>
-      </div>
+  <h2>＋ Novo apontamento</h2>
+  <form id="form" novalidate>
+    <div class="tipo-toggle" role="group" aria-label="Tipo de apontamento">
+      <button type="button" data-tipo="999" class="on">999</button>
+      <button type="button" data-tipo="REP">REP</button>
     </div>
-    <div class="field"><label>Data <span class="req">*</span></label>
-      <div class="datewrap"><input id="data" type="date" required><span>📅</span></div>
+    <div class="grid end-num">
+      <div class="field"><label>Endereço <span class="req">*</span></label><input id="endereco" autocomplete="off"></div>
+      <div class="field"><label>Número <span class="req">*</span></label><input id="numero" inputmode="numeric" autocomplete="off"></div>
+    </div>
+    <div class="grid">
+      <div class="field"><label>Medidor <span class="req">*</span></label><input id="medidor" autocomplete="off" autocapitalize="characters"></div>
+      <div class="field"><label>Leitura <small style="font-weight:600;color:var(--muted)">(se tiver)</small></label><input id="leitura" inputmode="decimal" autocomplete="off"></div>
+      <div class="field"><label>Etapa <span class="req">*</span></label><select id="etapa"><option value="">Selecione</option></select></div>
+      <div class="field"><label>Data <span class="req">*</span></label><input id="data" type="date"></div>
     </div>
     <input id="photo" type="file" accept="image/*" capture="environment" hidden>
     <button type="button" class="camera" id="cameraBtn">📸 Adicionar foto</button>
-    <div class="preview" id="preview"><img id="previewImg"><button type="button" class="remove-photo" id="removePhoto">×</button></div>
-    <button class="save" type="submit">💾 Salvar lançamento</button>
-    <div class="hint">Todo novo lançamento começa automaticamente como pendente.</div>
+    <div class="preview" id="preview"><img id="previewImg" alt="Foto do apontamento"><button type="button" class="remove-photo" id="removePhoto" aria-label="Remover foto">×</button></div>
+    <button class="save" type="submit">💾 Salvar apontamento</button>
+    <div class="hint">Todo novo apontamento começa como Esperando. Com 3 dias, aparece o aviso para buscar.</div>
   </form>
 </section>
 
 <section class="panel">
-  <div class="records-head"><h2>Lançamentos</h2><span id="count">0</span></div>
-  <input class="search" id="search" placeholder="🔎 Buscar endereço, código, medidor...">
+  <div class="records-head"><h2>Apontamentos</h2><span class="count" id="count">0</span></div>
+  <div class="aviso" id="aviso"></div>
+  <div class="filtros">
+    <select id="filtroEtapa" aria-label="Filtrar por etapa"><option value="">Todas</option></select>
+    <input id="search" placeholder="🔎 Buscar endereço, medidor, leitura...">
+  </div>
   <div id="records"></div>
 </section>
 
-<footer>© 2026 Luís Ricardo de Almeida Siqueira — Todos os direitos reservados.</footer>
+<footer>
+  <span class="versao" id="versaoRodape"></span><br>
+  Desenvolvido por Luís Ricardo de Almeida Siqueira<br>
+  © 2026 Luís Ricardo de Almeida Siqueira — Todos os direitos reservados.
+</footer>
 </main>
 </div>
 
 <div class="overlay" id="overlay">
   <div class="drawer">
-    <button class="close" id="closeMenu">×</button>
+    <button class="close" id="closeMenu" aria-label="Fechar menu">×</button>
     <h2>Menu</h2>
+    <div class="perfil-box" id="perfilBox"></div>
+    <button class="menuitem" id="updateApp">🔄 Atualizar app</button>
     <button class="menuitem" id="shareApp">📲 Compartilhar app</button>
     <button class="menuitem" id="shareInfo">📤 Compartilhar informações</button>
-    <button class="menuitem" id="exportData">📁 Exportar informações</button>
+    <button class="menuitem" id="exportCSV">📊 Exportar CSV (Excel)</button>
+    <button class="menuitem" id="exportData">📁 Exportar backup (JSON)</button>
     <button class="menuitem" id="openTrash">🗑️ Lixeira</button>
+
+    <!-- Áreas preparadas para os perfis. Só aparecem para quem tiver o perfil. -->
+    <div data-perfis="administrador desenvolvedor" hidden>
+      <div class="menu-sep">Administração</div>
+      <button class="menuitem" id="adminArea">🛡️ Área do administrador</button>
+    </div>
+    <div data-perfis="desenvolvedor" hidden>
+      <div class="menu-sep">Desenvolvedor</div>
+      <button class="menuitem" id="devArea">🛠️ Ferramentas do desenvolvedor</button>
+    </div>
+
+    <div class="menu-versao" id="versaoMenu"></div>
   </div>
 </div>
 
 <div class="modal" id="editModal">
  <div class="modalbox">
-  <h2>Editar lançamento <button class="close" id="closeEdit">×</button></h2>
+  <h2>Editar apontamento <button class="close" id="closeEdit" aria-label="Fechar">×</button></h2>
   <div id="editFields"></div>
   <div class="modal-actions"><button class="save" id="saveEdit">Salvar</button><button class="secondary" id="deleteEdit">Excluir</button></div>
  </div>
@@ -149,112 +237,332 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:18px 10px 25px}
 
 <div class="modal" id="trashModal">
  <div class="modalbox">
-  <h2>Lixeira <button class="close" id="closeTrash">×</button></h2>
+  <h2>Lixeira <button class="close" id="closeTrash" aria-label="Fechar">×</button></h2>
   <div id="trashList"></div>
  </div>
 </div>
 
 <script>
-const KEY='999_correcoes_v1', TRASH='999_lixeira_v1';
+/* =========================================================
+   CONFIGURAÇÃO GERAL
+   ========================================================= */
+const APP_NOME='Apontamento';
+const APP_VERSAO='2.3';          // mude aqui a cada atualização
+const PRAZO_DIAS=3;              // dias até o aviso de buscar
+const REPO_GITHUB='Corre-o-999'; // ⚠️ só para o desenvolvedor: nome do repositório no GitHub
+
+// Mesmas chaves do app 999 → os lançamentos antigos continuam aparecendo
+const KEY='999_correcoes_v1', TRASH='999_lixeira_v1', FILTRO_KEY='apontamento_filtro_etapa';
+
+/* =========================================================
+   PERFIS (estrutura preparada para desenvolvedor e administrador)
+   Hoje todo mundo entra como "usuario". Quando o login (Firebase)
+   for ligado, basta preencher usuarioAtual com o perfil da conta.
+   ========================================================= */
+const PERFIS={
+  desenvolvedor:{nome:'Desenvolvedor', permissoes:['lancar','editar','excluir','restaurar','exportar','admin','dev']},
+  administrador:{nome:'Administrador', permissoes:['lancar','editar','excluir','restaurar','exportar','admin']},
+  usuario:      {nome:'Usuário',       permissoes:['lancar','editar','excluir','restaurar','exportar']}
+};
+let usuarioAtual={nome:'',email:'',perfil:'usuario'};
+
+function pode(acao){
+  const p=PERFIS[usuarioAtual.perfil]||PERFIS.usuario;
+  return p.permissoes.includes(acao);
+}
+function aplicarPerfil(){
+  document.querySelectorAll('[data-perfis]').forEach(el=>{
+    el.hidden=!el.dataset.perfis.split(' ').includes(usuarioAtual.perfil);
+  });
+  const p=PERFIS[usuarioAtual.perfil]||PERFIS.usuario;
+  $('perfilBox').innerHTML=`👤 Perfil: <b>${p.nome}</b>${usuarioAtual.nome?'<br>'+esc(usuarioAtual.nome):''}`;
+}
+
+/* =========================================================
+   DADOS
+   ========================================================= */
+const STATUS=['Esperando','Em execução','Executado'];
+const STATUS_ANTIGO={'Pendente':'Esperando','Aguardando retorno':'Em execução','Resolvido':'Executado'};
+
 let records=JSON.parse(localStorage.getItem(KEY)||'[]');
 let trash=JSON.parse(localStorage.getItem(TRASH)||'[]');
-let editId=null, photoData='';
+let editId=null, photoData='', tipoAtual='999';
+
+// Converte lançamentos antigos para o novo formato
+function migrar(r){
+  if(STATUS_ANTIGO[r.status]) r.status=STATUS_ANTIGO[r.status];
+  if(!STATUS.includes(r.status)) r.status='Esperando';
+  if(r.tipo!=='REP') r.tipo='999';
+  return r;
+}
+records=records.map(migrar); trash=trash.map(migrar);
 
 const $=id=>document.getElementById(id);
-const etapas=$('etapa');
-for(let i=1;i<=18;i++){let o=document.createElement('option');o.value=i;o.textContent=String(i).padStart(2,'0');etapas.appendChild(o)}
-$('data').value=new Date().toISOString().slice(0,10);
+const pad=v=>String(v).padStart(2,'0');
 
-function saveStore(){localStorage.setItem(KEY,JSON.stringify(records));localStorage.setItem(TRASH,JSON.stringify(trash));}
-function cls(status){return status==='Pendente'?'red':status==='Aguardando retorno'?'yellow':'green'}
+function hojeLocal(){
+  const d=new Date();
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+function saveStore(){
+  try{localStorage.setItem(KEY,JSON.stringify(records));localStorage.setItem(TRASH,JSON.stringify(trash));}
+  catch(e){alert('Não foi possível salvar. A memória do app pode estar cheia (fotos ocupam bastante espaço).');}
+}
+function cls(status){return status==='Esperando'?'red':status==='Em execução'?'yellow':'green'}
 function daysLeft(date){
   const d=new Date(date+'T00:00:00'); const now=new Date(); now.setHours(0,0,0,0);
-  return 3-Math.floor((now-d)/86400000);
+  return PRAZO_DIAS-Math.round((now-d)/86400000);
 }
-function render(){
-  const q=$('search').value.toLowerCase().trim();
-  const list=records.filter(r=>Object.values(r).join(' ').toLowerCase().includes(q));
-  $('count').textContent=records.length;
-  if(!list.length){$('records').innerHTML='<div class="empty">Nenhum lançamento encontrado.</div>';return}
-  $('records').innerHTML=list.map(r=>{
-    const left=daysLeft(r.data);
-    const prazo=r.status==='Resolvido'?'Concluído':left<0?'Prazo vencido':`Restam ${left} dia${left===1?'':'s'}`;
-    return `<article class="record ${cls(r.status)}">
-      <div>
-        <div class="rtitle">${esc(r.endereco)}, ${esc(r.numero)}</div>
-        <div class="meta">${esc(r.codigo)} · Etapa ${String(r.etapa).padStart(2,'0')}<br>Medidor: ${esc(r.medidor)} · Leitura: ${esc(r.leitura)}<br>📅 ${fmt(r.data)} · ${prazo}</div>
-        ${r.photo?'<div class="meta">📸 Foto anexada</div>':''}
-        <div class="actions"><button class="small edit" onclick="editRecord('${r.id}')">✏️ Editar</button><button class="small del" onclick="deleteRecord('${r.id}')">🗑️ Excluir</button></div>
-      </div>
-      <div class="record-right">
-        <button class="dot ${cls(r.status)}" title="${r.status}"></button>
-        ${r.status!=='Resolvido'
-          ? `<button class="next-btn" title="Avançar para ${r.status==='Pendente'?'Aguardando retorno':'Resolvido'}" onclick="nextStatus('${r.id}')">›</button>`
-          : `<button class="next-btn done" title="Resolvido" disabled>✓</button>`}
-      </div>
-    </article>`;
-  }).join('');
+function prazoInfo(r){
+  if(r.status==='Executado') return {txt:'Executado',c:'fim',late:false};
+  const left=daysLeft(r.data);
+  if(left>0) return {txt:`Buscar em ${left} dia${left===1?'':'s'}`,c:'ok',late:false};
+  if(left===0) return {txt:'⚠️ Buscar hoje',c:'hoje',late:true};
+  const a=-left;
+  return {txt:`⚠️ Buscar — atrasado ${a} dia${a===1?'':'s'}`,c:'atrasado',late:true};
 }
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function fmt(v){return v.split('-').reverse().join('/')}
+function fmt(v){return v?v.split('-').reverse().join('/'):''}
+
+/* =========================================================
+   ETAPAS
+   ========================================================= */
+for(let i=1;i<=18;i++){
+  $('etapa').add(new Option(pad(i),i));
+  $('filtroEtapa').add(new Option('Etapa '+pad(i),i));
+}
+$('filtroEtapa').value=localStorage.getItem(FILTRO_KEY)||'';
+$('filtroEtapa').onchange=()=>{localStorage.setItem(FILTRO_KEY,$('filtroEtapa').value);render();};
+$('data').value=hojeLocal();
+
+/* =========================================================
+   TIPO 999 / REP
+   ========================================================= */
+document.querySelectorAll('.tipo-toggle button').forEach(b=>{
+  b.onclick=()=>{
+    tipoAtual=b.dataset.tipo;
+    document.querySelectorAll('.tipo-toggle button').forEach(x=>x.classList.toggle('on',x===b));
+  };
+});
+
+/* =========================================================
+   LISTA
+   ========================================================= */
+function card(r){
+  const p=prazoInfo(r);
+  const prox=r.status==='Esperando'?'Em execução':r.status==='Em execução'?'Executado':'';
+  return `<article class="record ${cls(r.status)} ${p.late?'late':''}">
+    <div>
+      <div class="rtitle"><span class="tipo ${r.tipo==='REP'?'rep':''}">${r.tipo}</span>${esc(r.endereco)}, ${esc(r.numero)}</div>
+      <div class="meta">Etapa ${pad(r.etapa)}<br>Medidor: ${esc(r.medidor)} · Leitura: ${r.leitura?esc(r.leitura):'<i>sem leitura</i>'}<br>📅 ${fmt(r.data)} · <span class="prazo ${p.c}">${p.txt}</span></div>
+      ${r.photo?'<div class="meta">📸 Foto anexada</div>':''}
+      <div class="actions"><button class="small edit" onclick="editRecord('${r.id}')">✏️ Editar</button><button class="small del" onclick="deleteRecord('${r.id}')">🗑️ Excluir</button></div>
+    </div>
+    <div class="record-right">
+      ${prox
+        ? `<button class="next-btn" title="Mover para ${prox}" onclick="nextStatus('${r.id}')">${prox==='Executado'?'Executar ›':'Iniciar ›'}</button>`
+        : `<button class="next-btn done" title="Executado" disabled>✓</button>`}
+    </div>
+  </article>`;
+}
+
+function renderAviso(){
+  const late=records.filter(r=>r.status!=='Executado'&&daysLeft(r.data)<=0);
+  if(!late.length){$('aviso').style.display='none';return}
+  const et=[...new Set(late.map(r=>Number(r.etapa)))].sort((a,b)=>a-b).map(pad).join(', ');
+  $('aviso').innerHTML=`⚠️ <b>${late.length} apontamento${late.length===1?'':'s'}</b> com ${PRAZO_DIAS} dias ou mais — hora de buscar.<br>Etapa${et.includes(',')?'s':''}: ${et}`;
+  $('aviso').style.display='block';
+}
+
+let executadoAberto=false;
+function render(){
+  const q=$('search').value.toLowerCase().trim();
+  const f=$('filtroEtapa').value;
+  const base=records.filter(r=>
+    (!f||String(r.etapa)===f) &&
+    (!q||[r.endereco,r.numero,r.medidor,r.leitura,r.tipo,r.status,fmt(r.data)].join(' ').toLowerCase().includes(q))
+  );
+  $('count').textContent=base.length;
+  renderAviso();
+
+  if(!base.length){
+    $('records').innerHTML=`<div class="empty">${f?'Nenhum apontamento na Etapa '+pad(f)+'.':'Nenhum apontamento encontrado.'}</div>`;
+    return;
+  }
+
+  const grupos=[
+    {st:'Esperando',  classe:'g-esperando',icone:'⏳'},
+    {st:'Em execução',classe:'g-execucao', icone:'🔧'},
+    {st:'Executado',  classe:'g-executado',icone:'✅'}
+  ];
+  $('records').innerHTML=grupos.map(g=>{
+    const lst=base.filter(r=>r.status===g.st)
+      .sort((a,b)=>g.st==='Executado'?b.data.localeCompare(a.data):a.data.localeCompare(b.data));
+    const corpo=lst.length?lst.map(card).join(''):'<div class="vazio-grupo">Nada aqui.</div>';
+    const head=`<span class="lbl">${g.icone} ${g.st}</span><span class="n">${lst.length}</span>`;
+    if(g.st==='Executado'){
+      return `<details class="grupo ${g.classe}" ${executadoAberto?'open':''} ontoggle="executadoAberto=this.open"><summary class="grupo-head">${head}</summary>${corpo}</details>`;
+    }
+    return `<div class="grupo ${g.classe}"><div class="grupo-head">${head}</div>${corpo}</div>`;
+  }).join('');
+}
+
 function nextStatus(id){
   const r=records.find(x=>x.id===id); if(!r)return;
-  r.status=r.status==='Pendente'?'Aguardando retorno':r.status==='Aguardando retorno'?'Resolvido':'Pendente';
+  r.status=r.status==='Esperando'?'Em execução':'Executado';
   saveStore();render();
 }
 function deleteRecord(id){
+  if(!pode('excluir')){alert('Seu perfil não pode excluir.');return}
   const r=records.find(x=>x.id===id);if(!r)return;
-  if(confirm('Enviar este lançamento para a lixeira?')){records=records.filter(x=>x.id!==id);trash.push(r);saveStore();render();}
+  if(confirm('Enviar este apontamento para a lixeira?')){records=records.filter(x=>x.id!==id);trash.push(r);saveStore();render();}
 }
+
+/* =========================================================
+   EDITAR
+   ========================================================= */
 function editRecord(id){
+  if(!pode('editar')){alert('Seu perfil não pode editar.');return}
   const r=records.find(x=>x.id===id);if(!r)return;editId=id;
   $('editFields').innerHTML=`
-  <div class="field"><label>Endereço *</label><input id="e_end" value="${esc(r.endereco)}"></div>
-  <div class="grid"><div class="field"><label>Número *</label><input id="e_num" value="${esc(r.numero)}"></div><div class="field"><label>Medidor *</label><input id="e_med" value="${esc(r.medidor)}"></div></div>
-  <div class="grid"><div class="field"><label>Leitura *</label><input id="e_leit" value="${esc(r.leitura)}"></div><div class="field"><label>Código *</label><input id="e_cod" value="${esc(r.codigo)}"></div></div>
-  <div class="grid"><div class="field"><label>Etapa *</label><select id="e_et"></select></div><div class="field"><label>Data *</label><input id="e_data" type="date" value="${r.data}"></div></div>
-  <div class="field"><label>Situação</label><select id="e_status"><option>Pendente</option><option>Aguardando retorno</option><option>Resolvido</option></select></div>`;
-  const s=$('e_et');for(let i=1;i<=18;i++)s.add(new Option(String(i).padStart(2,'0'),i));s.value=r.etapa;$('e_status').value=r.status;
+  <div class="grid">
+    <div class="field"><label>Tipo *</label><select id="e_tipo"><option>999</option><option>REP</option></select></div>
+    <div class="field"><label>Situação</label><select id="e_status">${STATUS.map(s=>`<option>${s}</option>`).join('')}</select></div>
+  </div>
+  <div class="grid end-num">
+    <div class="field"><label>Endereço *</label><input id="e_end" value="${esc(r.endereco)}"></div>
+    <div class="field"><label>Número *</label><input id="e_num" inputmode="numeric" value="${esc(r.numero)}"></div>
+  </div>
+  <div class="grid">
+    <div class="field"><label>Medidor *</label><input id="e_med" value="${esc(r.medidor)}"></div>
+    <div class="field"><label>Leitura</label><input id="e_leit" inputmode="decimal" value="${esc(r.leitura)}"></div>
+    <div class="field"><label>Etapa *</label><select id="e_et"></select></div>
+    <div class="field"><label>Data *</label><input id="e_data" type="date" value="${r.data}"></div>
+  </div>`;
+  const s=$('e_et');for(let i=1;i<=18;i++)s.add(new Option(pad(i),i));
+  s.value=r.etapa;$('e_status').value=r.status;$('e_tipo').value=r.tipo;
   $('editModal').style.display='flex';
 }
 $('saveEdit').onclick=()=>{
- const r=records.find(x=>x.id===editId);if(!r)return;
- r.endereco=$('e_end').value.trim();r.numero=$('e_num').value.trim();r.medidor=$('e_med').value.trim();r.leitura=$('e_leit').value.trim();r.codigo=$('e_cod').value.trim();r.etapa=$('e_et').value;r.data=$('e_data').value;r.status=$('e_status').value;
- if(!r.endereco||!r.numero||!r.medidor||!r.leitura||!r.codigo||!r.etapa||!r.data){alert('Preencha todos os campos obrigatórios.');return}
- saveStore();$('editModal').style.display='none';render();
+  const r=records.find(x=>x.id===editId);if(!r)return;
+  const n={tipo:$('e_tipo').value,endereco:$('e_end').value.trim(),numero:$('e_num').value.trim(),medidor:$('e_med').value.trim(),leitura:$('e_leit').value.trim(),etapa:$('e_et').value,data:$('e_data').value,status:$('e_status').value};
+  if(!n.endereco||!n.numero||!n.medidor||!n.etapa||!n.data){alert('Preencha todos os campos obrigatórios.');return}
+  Object.assign(r,n);
+  saveStore();$('editModal').style.display='none';render();
 };
 $('deleteEdit').onclick=()=>{if(editId){$('editModal').style.display='none';deleteRecord(editId)}};
+$('closeEdit').onclick=()=>$('editModal').style.display='none';
+
+/* =========================================================
+   NOVO APONTAMENTO
+   ========================================================= */
 $('form').onsubmit=e=>{
- e.preventDefault();
- if(!e.target.reportValidity())return;
- records.unshift({id:crypto.randomUUID(),endereco:$('endereco').value.trim(),numero:$('numero').value.trim(),medidor:$('medidor').value.trim(),leitura:$('leitura').value.trim(),codigo:$('codigo').value.trim(),etapa:$('etapa').value,data:$('data').value,status:'Pendente',photo:photoData});
- saveStore();e.target.reset();$('data').value=new Date().toISOString().slice(0,10);photoData='';$('preview').style.display='none';render();window.scrollTo({top:0,behavior:'smooth'});
+  e.preventDefault();
+  if(!pode('lancar')){alert('Seu perfil não pode lançar.');return}
+  const campos=['endereco','numero','medidor','etapa','data'];
+  const faltando=campos.find(c=>!$(c).value.trim());
+  if(faltando){alert('Preencha todos os campos obrigatórios.');$(faltando).focus();return}
+  const novo={
+    id:(crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random())),
+    tipo:tipoAtual,
+    endereco:$('endereco').value.trim(),numero:$('numero').value.trim(),
+    medidor:$('medidor').value.trim(),leitura:$('leitura').value.trim(),
+    etapa:$('etapa').value,data:$('data').value,
+    status:'Esperando',photo:photoData
+  };
+  records.unshift(novo);
+  saveStore();
+  // Mostra a lista já na etapa do lançamento
+  $('filtroEtapa').value=novo.etapa; localStorage.setItem(FILTRO_KEY,novo.etapa);
+  e.target.reset();$('data').value=hojeLocal();photoData='';$('preview').style.display='none';
+  render();window.scrollTo({top:0,behavior:'smooth'});
 };
 $('cameraBtn').onclick=()=>$('photo').click();
 $('photo').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{photoData=rd.result;$('previewImg').src=photoData;$('preview').style.display='block'};rd.readAsDataURL(f)};
 $('removePhoto').onclick=()=>{photoData='';$('photo').value='';$('preview').style.display='none'};
 $('search').oninput=render;
 
-function openMenu(){ $('overlay').style.display='block' } function closeMenu(){ $('overlay').style.display='none' }
+/* =========================================================
+   MENU, COMPARTILHAR, EXPORTAR, LIXEIRA
+   ========================================================= */
+function openMenu(){$('overlay').style.display='block'} function closeMenu(){$('overlay').style.display='none'}
 $('menuBtn').onclick=openMenu;$('closeMenu').onclick=closeMenu;$('overlay').onclick=e=>{if(e.target===$('overlay'))closeMenu()};
-async function share(text,title='999 — Correção de Lançamentos'){
- if(navigator.share){try{await navigator.share({title,text,url:location.href})}catch{}}
- else{await navigator.clipboard?.writeText(text+' '+location.href);alert('Informação copiada para compartilhar.')}
+
+function urlDoApp(){const u=new URL(location.href);u.hash='';u.searchParams.delete('v');return u.toString();}
+async function share(text,title=APP_NOME+' — Correção de Lançamentos'){
+  const url=urlDoApp();
+  if(navigator.share){try{await navigator.share({title,text,url})}catch(e){}}
+  else if(navigator.clipboard){await navigator.clipboard.writeText(text+'\n'+url);alert('Copiado para compartilhar.')}
+  else{prompt('Copie:',text+'\n'+url)}
 }
-$('shareTop').onclick=()=>share('Confira o aplicativo 999 — Correção de Lançamentos.');
-$('shareApp').onclick=()=>{closeMenu();share('Conheça o aplicativo 999 — Correção de Lançamentos.')}
-$('shareInfo').onclick=()=>{closeMenu();share(records.map(r=>`${r.endereco}, ${r.numero} | Código ${r.codigo} | Etapa ${r.etapa} | ${r.status}`).join('\\n')||'Nenhum lançamento registrado.')};
+$('shareTop').onclick=()=>share('Confira o aplicativo Apontamento — Correção de Lançamentos.');
+$('shareApp').onclick=()=>{closeMenu();share('Conheça o aplicativo Apontamento — Correção de Lançamentos.')};
+$('shareInfo').onclick=()=>{
+  closeMenu();
+  const f=$('filtroEtapa').value;
+  const lst=records.filter(r=>!f||String(r.etapa)===f);
+  share(lst.map(r=>`[${r.tipo}] ${r.endereco}, ${r.numero} | Etapa ${pad(r.etapa)} | ${r.status}`).join('\n')||'Nenhum apontamento registrado.');
+};
 $('exportData').onclick=()=>{
- closeMenu();const blob=new Blob([JSON.stringify(records,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='999-lancamentos.json';a.click();URL.revokeObjectURL(url)
+  closeMenu();
+  if(!pode('exportar')){alert('Seu perfil não pode exportar.');return}
+  const blob=new Blob([JSON.stringify(records,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='apontamento-lancamentos.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+$('exportCSV').onclick=()=>{
+  closeMenu();
+  if(!pode('exportar')){alert('Seu perfil não pode exportar.');return}
+  const f=$('filtroEtapa').value;
+  const lst=records.filter(r=>!f||String(r.etapa)===f)
+    .sort((a,b)=>Number(a.etapa)-Number(b.etapa)||STATUS.indexOf(a.status)-STATUS.indexOf(b.status)||a.data.localeCompare(b.data));
+  if(!lst.length){alert(f?'Nenhum apontamento na Etapa '+pad(f)+' para exportar.':'Não há apontamentos para exportar.');return}
+  const linhas=[['Tipo','Endereço','Número','Medidor','Leitura','Etapa','Data','Situação','Prazo','Foto']];
+  lst.forEach(r=>linhas.push([r.tipo,r.endereco,r.numero,r.medidor,r.leitura,pad(r.etapa),fmt(r.data),r.status,prazoInfo(r).txt.replace('⚠️ ',''),r.photo?'Sim':'Não']));
+  const csv='\ufeff'+linhas.map(l=>l.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='apontamento'+(f?'-etapa-'+pad(f):'')+'-'+hojeLocal()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 };
 function renderTrash(){
- if(!trash.length){$('trashList').innerHTML='<div class="empty">A lixeira está vazia.</div>';return}
- $('trashList').innerHTML=trash.map(r=>`<div class="trashrow"><div><b>${esc(r.endereco)}, ${esc(r.numero)}</b><br><small>${esc(r.codigo)} · Etapa ${r.etapa}</small></div><button class="small edit" onclick="restore('${r.id}')">Restaurar</button></div>`).join('');
+  if(!trash.length){$('trashList').innerHTML='<div class="empty">A lixeira está vazia.</div>';return}
+  $('trashList').innerHTML=trash.map(r=>`<div class="trashrow"><div><b>[${r.tipo}] ${esc(r.endereco)}, ${esc(r.numero)}</b><br><small>Etapa ${pad(r.etapa)}</small></div><button class="small edit" onclick="restore('${r.id}')">Restaurar</button></div>`).join('');
 }
-function restore(id){const r=trash.find(x=>x.id===id);if(!r)return;trash=trash.filter(x=>x.id!==id);records.unshift(r);saveStore();renderTrash();render()}
+function restore(id){
+  if(!pode('restaurar')){alert('Seu perfil não pode restaurar.');return}
+  const r=trash.find(x=>x.id===id);if(!r)return;trash=trash.filter(x=>x.id!==id);records.unshift(r);saveStore();renderTrash();render();
+}
 $('openTrash').onclick=()=>{closeMenu();renderTrash();$('trashModal').style.display='flex'};
 $('closeTrash').onclick=()=>$('trashModal').style.display='none';
-$('closeEdit').onclick=()=>$('editModal').style.display='none';
+
+// Áreas reservadas (conteúdo entra quando o login estiver pronto)
+$('adminArea').onclick=()=>{closeMenu();alert('Área do administrador em preparação.')};
+$('devArea').onclick=()=>{closeMenu();alert('Ferramentas do desenvolvedor\n\nVersão: '+APP_VERSAO+'\nRepositório GitHub: '+REPO_GITHUB+'\n(o app se chama Apontamento, mas sobe no repositório do 999)')};
+
+/* =========================================================
+   ATUALIZAR APP (não apaga os apontamentos)
+   ========================================================= */
+async function atualizarApp(){
+  closeMenu();
+  const b=$('updateTop'); b.disabled=true; b.textContent='⏳';
+  try{
+    if('serviceWorker' in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      for(const r of regs){try{await r.update()}catch(_){} try{await r.unregister()}catch(_){}}
+    }
+    if(window.caches){const n=await caches.keys();await Promise.all(n.map(k=>caches.delete(k)))}
+  }catch(_){}
+  const u=new URL(location.href);u.hash='';u.searchParams.set('v',Date.now());
+  location.replace(u.toString());
+}
+$('updateTop').onclick=atualizarApp;
+$('updateApp').onclick=atualizarApp;
+
+/* =========================================================
+   INÍCIO
+   ========================================================= */
+$('versaoRodape').textContent=APP_NOME+' v'+APP_VERSAO;
+$('versaoMenu').textContent=APP_NOME+' • versão '+APP_VERSAO;
+saveStore();      // grava a conversão dos lançamentos antigos
+aplicarPerfil();
 render();
 </script>
 </body>
