@@ -7,12 +7,16 @@
   Suba SEMPRE este arquivo como index.html dentro do Correcao-999.
   Não crie repositório novo com o nome Apontamento, senão o link
   muda e o atalho do celular para de funcionar.
+
+  PARA LIGAR O FIREBASE: preencha FIREBASE_CONFIG e DEV_EMAILS
+  logo no começo do <script> (procure "CONFIGURAÇÃO GERAL").
+  Enquanto FIREBASE_CONFIG estiver vazio, o app funciona só no
+  aparelho, como antes.
   ============================================================
 -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<!-- maximum-scale=1 evita o zoom automático do iPhone ao tocar nos campos (o zoom com os dedos continua funcionando) -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0758c9">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -23,11 +27,16 @@
 <link rel="icon" type="image/png" href="999-icon.png">
 <link rel="apple-touch-icon" href="999-icon.png">
 <title>Apontamento — Correção de Lançamentos</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
 :root{
   --blue:#0758c9; --blue2:#0b75e8; --navy:#063b88;
   --bg:#eef4fb; --card:#fff; --line:#d8e3f1; --text:#102a4a;
-  --red:#ef3340; --yellow:#f5b900; --green:#18a957; --muted:#6c7d91;
+  --red:#ef3340; --yellow:#f5b900; --green:#18a957; --orange:#f07a00; --muted:#6c7d91;
   --rep:#e0212f;
 }
 *{box-sizing:border-box}
@@ -35,9 +44,10 @@ body{margin:0;background:linear-gradient(#eaf2fb,#f7f9fc);font-family:-apple-sys
 button,input,select{font:inherit}
 button{cursor:pointer}
 .app{max-width:520px;margin:auto;min-height:100vh;background:var(--bg);box-shadow:0 0 35px #0b3a7020}
+[hidden]{display:none!important}
 
 /* Cabeçalho */
-header{background:linear-gradient(135deg,var(--navy),var(--blue2));color:#fff;padding:12px 14px;position:sticky;top:0;z-index:20}
+header{background:linear-gradient(135deg,var(--navy),var(--blue2));color:#fff;padding:12px 14px 9px;position:sticky;top:0;z-index:20}
 .headrow{display:flex;align-items:center;gap:10px}
 .logo{width:40px;height:40px;border-radius:11px;background:#fff;padding:3px;object-fit:cover}
 .title{font-weight:800;font-size:19px;line-height:1}
@@ -45,6 +55,14 @@ header{background:linear-gradient(135deg,var(--navy),var(--blue2));color:#fff;pa
 .head-actions{margin-left:auto;display:flex;gap:6px}
 .iconbtn{border:0;background:#ffffff1f;color:#fff;width:36px;height:36px;border-radius:10px;font-size:18px;display:flex;align-items:center;justify-content:center;padding:0}
 .iconbtn:disabled{opacity:.6}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px;padding-top:8px;border-top:1px solid #ffffff26}
+.userinfo{font-size:11.5px;opacity:.95;line-height:1.35;min-width:0}
+.userinfo b{font-size:12px}
+.perfil-tag{display:inline-block;background:#ffffff2b;border-radius:6px;padding:1px 6px;font-size:10px;font-weight:800;margin-left:4px}
+.fbbox{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0}
+.fb-top{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:800;white-space:nowrap}
+.fb-top button{border:0;background:#ffffff26;color:#fff;border-radius:7px;width:24px;height:22px;padding:0;font-size:12px}
+.fb-dot{border:0;background:transparent;padding:0;font-size:14px;line-height:1}
 
 main{padding:12px 12px 70px}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px;box-shadow:0 5px 16px #164a7b10;margin-bottom:12px}
@@ -56,28 +74,46 @@ h2{font-size:16px;margin:0 0 11px}
 .field{margin-bottom:9px;min-width:0}
 label{display:block;font-size:12px;font-weight:800;margin-bottom:4px}
 .req{color:#e22;font-weight:900}
+.opc{font-weight:600;color:var(--muted)}
 input,select{width:100%;min-width:0;height:40px;border:1px solid #b9cbe0;border-radius:10px;padding:0 10px;background:#fbfdff;color:var(--text);outline:none;font-size:14px;-webkit-appearance:none;appearance:none}
 input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px #0758c915}
-/* Setinha pequena no seletor */
 select{padding-right:26px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%230758c9' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:10px 6px}
-/* Data alinhada e sem vazar para fora do cartão no iPhone */
 input[type=date]{display:block;text-align:left;line-height:40px}
 input[type=date]::-webkit-date-and-time-value{text-align:left}
 
-/* Tipo: 999 ou REP */
 .tipo-toggle{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#eef4fb;border:1px solid var(--line);border-radius:11px;padding:4px;margin-bottom:10px}
 .tipo-toggle button{border:0;border-radius:8px;height:34px;font-weight:900;font-size:13px;background:transparent;color:var(--muted)}
+.tipo-toggle button[data-tipo="REP"]{color:var(--rep)}
 .tipo-toggle button.on[data-tipo="999"]{background:var(--blue);color:#fff}
 .tipo-toggle button.on[data-tipo="REP"]{background:var(--rep);color:#fff}
-.tipo-toggle button[data-tipo="REP"]{color:var(--rep)}
 
 .camera{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;border:1px dashed #8eb1d7;background:#eef6ff;color:var(--blue);height:40px;border-radius:10px;font-weight:800;font-size:13px}
 .preview{display:none;margin-top:8px;position:relative}
 .preview img{width:100%;max-height:200px;object-fit:cover;border-radius:12px}
 .remove-photo{position:absolute;right:8px;top:8px;border:0;background:#ef3340;color:#fff;border-radius:50%;width:32px;height:32px}
 .save{width:100%;border:0;border-radius:12px;height:44px;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;font-weight:900;font-size:15px;margin-top:8px}
-.hint{font-size:11px;color:var(--muted);text-align:center;margin-top:7px}
+.save:disabled{opacity:.6}
+.hint{font-size:11px;color:var(--muted);text-align:center;margin-top:7px;line-height:1.45}
 .secondary{border:1px solid #c9d8e9;background:#f6faff;color:var(--navy);border-radius:10px;height:42px;font-weight:800}
+
+.loc-line{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);background:#f4f8fd;border-radius:10px;padding:7px 9px;margin-bottom:9px}
+.loc-line.ok{color:#087d3b;background:#e9f8f0}
+.loc-line button{border:1px solid var(--line);background:#fff;color:var(--blue);border-radius:8px;padding:5px 8px;font-size:11.5px;font-weight:800;white-space:nowrap}
+
+/* Mapa */
+.mapa-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mapa-head h2{margin:0}
+.mapa-toggle,.loc-mini{border:0;background:#e8f2ff;color:var(--blue);border-radius:9px;padding:7px 11px;font-weight:800;font-size:12px}
+.loc-mini:disabled{opacity:.6}
+#mapaBox{margin-top:10px}
+#mapa{height:300px;border-radius:12px;border:1px solid var(--line);z-index:1;background:#dfe9f5}
+.mapa-info{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.mapa-info:empty{display:none}
+.mapa-legenda span{display:inline-flex;align-items:center;gap:4px;margin-right:8px}
+.mapa-legenda i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.pop{font-size:12px;line-height:1.5}.pop b{font-size:13px}
+.pop-links{display:flex;gap:5px;margin-top:6px}
+.pop-links a{flex:1;text-align:center;background:#e8f2ff;color:#0758c9!important;border-radius:7px;padding:5px 6px;font-weight:800;text-decoration:none;font-size:11.5px}
 
 /* Lista */
 .records-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
@@ -85,9 +121,10 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 .count{background:#e8f2ff;color:var(--blue);border-radius:999px;padding:3px 9px;font-size:12px;font-weight:800}
 .filtros{display:grid;grid-template-columns:118px 1fr;gap:8px;margin-bottom:10px}
 .filtros select{background-color:#e8f2ff;color:var(--blue);font-weight:800;border-color:#bcd3ef}
+.meus{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--navy);margin:-2px 0 10px}
+.meus input{width:18px;height:18px;-webkit-appearance:checkbox;appearance:checkbox;margin:0}
 
-.aviso{display:none;background:#fff1f2;border:1px solid #ffc9cd;color:#a3141f;border-radius:12px;padding:9px 11px;font-size:12px;line-height:1.45;margin-bottom:10px}
-.aviso b{font-size:13px}
+.aviso{display:none;background:#fff1f2;border:1px solid #ffc9cd;color:#8f1119;border-radius:12px;padding:9px 11px;font-size:12px;line-height:1.55;margin-bottom:10px}
 
 .grupo{margin-top:12px}
 .grupo:first-child{margin-top:0}
@@ -110,14 +147,15 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 .tipo.rep{background:var(--rep)}
 .meta{font-size:12px;color:#48617d;line-height:1.55;margin-top:2px}
 .prazo{font-weight:800}
-.prazo.ok{color:#48617d}.prazo.hoje{color:#c26a00}.prazo.atrasado{color:#c91d28}.prazo.fim{color:#087d3b}
+.prazo.ok{color:#48617d}.prazo.alerta{color:#a36b00}.prazo.amanha{color:var(--orange)}.prazo.atrasado{color:#c91d28}.prazo.fim{color:#087d3b}
 .record-right{display:flex;align-items:flex-start}
 .next-btn{border:0;background:#eaf3ff;color:#0758c9;min-width:32px;height:32px;border-radius:9px;font-size:12px;font-weight:900;line-height:1;padding:0 8px;display:flex;align-items:center;justify-content:center;white-space:nowrap}
 .next-btn:active{transform:scale(.95);background:#dcecff}
 .next-btn.done{background:#eef2f6;color:#9aa8b7;cursor:default;font-size:16px}
-.actions{display:flex;gap:5px;margin-top:7px}
+.actions{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
 .small{border:0;border-radius:8px;padding:6px 9px;font-size:11.5px;font-weight:800}
-.edit{background:#e8f2ff;color:var(--blue)}.del{background:#ffe8e9;color:#d51f2c}
+.edit{background:#e8f2ff;color:var(--blue)}.del{background:#ffe8e9;color:#d51f2c}.ir{background:#e9f8f0;color:#087d3b}.agenda{background:#fff4dc;color:#8a5a00}
+.foto-link{border:0;background:none;color:var(--blue);padding:0;font-size:12px;font-weight:800}
 .empty{text-align:center;color:var(--muted);padding:20px 8px;font-size:13px}
 
 footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env(safe-area-inset-bottom,0px) + 22px);line-height:1.6}
@@ -129,7 +167,7 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
 .drawer h2{margin-top:5px}
 .menuitem{width:100%;border:0;background:#f4f8fd;color:var(--text);border-radius:11px;padding:12px;text-align:left;margin:5px 0;font-weight:800;font-size:13.5px}
 .menu-sep{font-size:11px;color:var(--muted);font-weight:800;margin:14px 2px 4px}
-.perfil-box{background:#f4f8fd;border-radius:11px;padding:10px 12px;font-size:12px;color:#48617d;margin-bottom:6px}
+.perfil-box{background:#f4f8fd;border-radius:11px;padding:10px 12px;font-size:12px;color:#48617d;margin-bottom:6px;line-height:1.5}
 .perfil-box b{color:var(--text)}
 .menu-versao{font-size:11px;color:var(--muted);text-align:center;margin-top:16px}
 .close{float:right;border:0;background:#eaf2fb;border-radius:10px;width:34px;height:34px;font-size:19px}
@@ -138,30 +176,25 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
 .modal{display:none;position:fixed;inset:0;background:#062b4b66;z-index:60;align-items:flex-end;justify-content:center}
 .modalbox{width:min(520px,100%);background:#fff;border-radius:20px 20px 0 0;padding:16px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px);max-height:90vh;overflow:auto}
 .modal-actions{display:flex;gap:8px;margin-top:10px}.modal-actions button{flex:1;margin-top:0}
-.trashrow{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:10px 0;font-size:13px}
+.trashrow,.userrow{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:10px 0;font-size:13px}
+.userrow select{width:140px;height:36px;font-size:13px}
+.userrow small{color:var(--muted)}
+.legenda-item{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.4}
+.legenda-item span{font-size:18px;line-height:1}
+.foto-grande{width:100%;border-radius:12px}
 
-[hidden]{display:none!important}
-/* Mapa e localização */
-.mapa-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.mapa-head h2{margin:0}
-.mapa-toggle,.loc-mini{border:0;background:#e8f2ff;color:var(--blue);border-radius:9px;padding:7px 11px;font-weight:800;font-size:12px}
-.loc-mini:disabled{opacity:.6}
-#mapaBox{margin-top:10px}
-#mapa{height:300px;border-radius:12px;border:1px solid var(--line);z-index:1;background:#dfe9f5}
-.mapa-info{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
-.mapa-info:empty{display:none}
-.mapa-legenda span{display:inline-flex;align-items:center;gap:4px;margin-right:8px}
-.mapa-legenda i{width:10px;height:10px;border-radius:50%;display:inline-block}
-.loc-line{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);background:#f4f8fd;border-radius:10px;padding:7px 9px;margin-bottom:9px}
-.loc-line.ok{color:#087d3b;background:#e9f8f0}
-.loc-line button{border:1px solid var(--line);background:#fff;color:var(--blue);border-radius:8px;padding:5px 8px;font-size:11.5px;font-weight:800;white-space:nowrap}
-.ir{background:#e9f8f0;color:#087d3b}
-.pop{font-size:12px;line-height:1.5}.pop b{font-size:13px}
-.pop-links{display:flex;gap:5px;margin-top:6px}
-.pop-links a{flex:1;text-align:center;background:#e8f2ff;color:#0758c9!important;border-radius:7px;padding:5px 6px;font-weight:800;text-decoration:none;font-size:11.5px}
+/* Login */
+.login{position:fixed;inset:0;z-index:80;background:linear-gradient(160deg,var(--navy),var(--blue2));display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{width:min(380px,100%);background:#fff;border-radius:20px;padding:22px 18px;box-shadow:0 20px 50px #0004;text-align:center}
+.login-logo{width:72px;height:72px;border-radius:18px;box-shadow:0 8px 20px #0758c940}
+.login-box h1{font-size:21px;margin:10px 0 2px}
+.login-sub{font-size:12.5px;color:var(--muted);margin:0 0 14px}
+.login-box .field{text-align:left}
+.login-links{display:flex;justify-content:space-between;margin-top:12px}
+.login-links button{border:0;background:none;color:var(--blue);font-weight:800;font-size:12.5px;padding:4px}
+.login-msg{font-size:12px;margin-top:10px;min-height:16px;color:#c91d28;font-weight:700}
+.login-msg.ok{color:#087d3b}
 </style>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -173,6 +206,13 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
       <button class="iconbtn" id="updateTop" title="Atualizar app" aria-label="Atualizar app">🔄</button>
       <button class="iconbtn" id="shareTop" title="Compartilhar" aria-label="Compartilhar">↗</button>
       <button class="iconbtn" id="menuBtn" title="Menu" aria-label="Menu">⋮</button>
+    </div>
+  </div>
+  <div class="topbar">
+    <div class="userinfo" id="userInfo"></div>
+    <div class="fbbox">
+      <div class="fb-top">☁️ Firebase <button id="fbSync" type="button" aria-label="Sincronizar">🔄</button></div>
+      <button class="fb-dot" id="fbDot" type="button" aria-label="O que significa esta bolinha">🟡</button>
     </div>
   </div>
 </header>
@@ -191,16 +231,17 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
     </div>
     <div class="grid">
       <div class="field"><label>Medidor <span class="req">*</span></label><input id="medidor" autocomplete="off" autocapitalize="characters"></div>
-      <div class="field"><label>Leitura <small style="font-weight:600;color:var(--muted)">(se tiver)</small></label><input id="leitura" inputmode="decimal" autocomplete="off"></div>
+      <div class="field"><label>Leitura <small class="opc">(se tiver)</small></label><input id="leitura" inputmode="decimal" autocomplete="off"></div>
       <div class="field"><label>Etapa <span class="req">*</span></label><select id="etapa"><option value="">Selecione</option></select></div>
       <div class="field"><label>Data <span class="req">*</span></label><input id="data" type="date"></div>
     </div>
+    <div class="field" id="respWrap" hidden><label>Responsável <small class="opc">(administradora)</small></label><select id="responsavel"></select></div>
     <div class="loc-line" id="locLine"><span id="locTxt">📍 Ao tocar em Endereço, o app pega a localização</span><button type="button" id="locBtn">Pegar agora</button></div>
     <input id="photo" type="file" accept="image/*" capture="environment" hidden>
     <button type="button" class="camera" id="cameraBtn">📸 Adicionar foto</button>
     <div class="preview" id="preview"><img id="previewImg" alt="Foto do apontamento"><button type="button" class="remove-photo" id="removePhoto" aria-label="Remover foto">×</button></div>
     <button class="save" type="submit">💾 Salvar apontamento</button>
-    <div class="hint">Todo novo apontamento começa como Esperando. Com 3 dias, aparece o aviso para buscar.</div>
+    <div class="hint" id="hintPrazo"></div>
   </form>
 </section>
 
@@ -219,6 +260,7 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
 <section class="panel">
   <div class="records-head"><h2>Apontamentos</h2><span class="count" id="count">0</span></div>
   <div class="aviso" id="aviso"></div>
+  <label class="meus" id="meusWrap" hidden><input type="checkbox" id="soMeus"> Mostrar só os meus (responsável ou lançados por mim)</label>
   <div class="filtros">
     <select id="filtroEtapa" aria-label="Filtrar por etapa"><option value="">Todas</option></select>
     <input id="search" placeholder="🔎 Buscar endereço, medidor, leitura...">
@@ -234,6 +276,7 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
 </main>
 </div>
 
+<!-- Menu -->
 <div class="overlay" id="overlay">
   <div class="drawer">
     <button class="close" id="closeMenu" aria-label="Fechar menu">×</button>
@@ -245,17 +288,19 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
     <button class="menuitem" id="exportCSV">📊 Exportar CSV (Excel)</button>
     <button class="menuitem" id="exportData">📁 Exportar backup (JSON)</button>
     <button class="menuitem" id="openTrash">🗑️ Lixeira</button>
+    <button class="menuitem" id="openLegenda">🟢 O que significam as bolinhas</button>
 
-    <!-- Áreas preparadas para os perfis. Só aparecem para quem tiver o perfil. -->
     <div data-perfis="administrador desenvolvedor" hidden>
       <div class="menu-sep">Administração</div>
-      <button class="menuitem" id="adminArea">🛡️ Área do administrador</button>
+      <button class="menuitem" id="adminArea">🛡️ Meus apontamentos (responsável)</button>
     </div>
     <div data-perfis="desenvolvedor" hidden>
       <div class="menu-sep">Desenvolvedor</div>
+      <button class="menuitem" id="usersArea">👥 Usuários e administradoras</button>
       <button class="menuitem" id="devArea">🛠️ Ferramentas do desenvolvedor</button>
     </div>
 
+    <button class="menuitem" id="logoutBtn" hidden>🚪 Sair da conta</button>
     <div class="menu-versao" id="versaoMenu"></div>
   </div>
 </div>
@@ -270,9 +315,50 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
 
 <div class="modal" id="trashModal">
  <div class="modalbox">
-  <h2>Lixeira <button class="close" id="closeTrash" aria-label="Fechar">×</button></h2>
+  <h2>Lixeira <button class="close" data-fechar="trashModal" aria-label="Fechar">×</button></h2>
   <div id="trashList"></div>
  </div>
+</div>
+
+<div class="modal" id="usersModal">
+ <div class="modalbox">
+  <h2>Usuários <button class="close" data-fechar="usersModal" aria-label="Fechar">×</button></h2>
+  <div class="hint" style="text-align:left;margin:0 0 6px">Cada pessoa cria a própria conta na tela de entrada. Depois, aqui, você escolhe quem é administradora.</div>
+  <div id="usersList"></div>
+ </div>
+</div>
+
+<div class="modal" id="legendaModal">
+ <div class="modalbox">
+  <h2>Conexão com a nuvem <button class="close" data-fechar="legendaModal" aria-label="Fechar">×</button></h2>
+  <div class="legenda-item"><span>🟢</span><div><b>Tudo certo</b><br>Conectado e sincronizado com o Firebase.</div></div>
+  <div class="legenda-item"><span>🟡</span><div><b>Verificando</b><br>Conectando ou conferindo os dados.</div></div>
+  <div class="legenda-item"><span>🟠</span><div><b>Salvo só no aparelho</b><br>Sem internet ou envio pendente. Assim que a conexão voltar, sobe sozinho.</div></div>
+  <div class="legenda-item"><span>🔴</span><div><b>Não conectou</b><br>Erro ao falar com o Firebase. Toque no 🔄 para tentar de novo.</div></div>
+  <div class="hint" id="legendaModo" style="text-align:left;margin-top:10px"></div>
+ </div>
+</div>
+
+<div class="modal" id="fotoModal">
+ <div class="modalbox">
+  <h2>Foto <button class="close" data-fechar="fotoModal" aria-label="Fechar">×</button></h2>
+  <img class="foto-grande" id="fotoGrande" alt="Foto do apontamento">
+ </div>
+</div>
+
+<!-- Tela de entrada (só aparece com o Firebase ligado) -->
+<div class="login" id="loginScreen" hidden>
+  <div class="login-box">
+    <img src="999-icon.png" class="login-logo" alt="">
+    <h1>Apontamento</h1>
+    <p class="login-sub" id="lgSub">Entre com sua conta</p>
+    <div class="field" id="nomeWrap" hidden><label>Nome</label><input id="lgNome" autocomplete="name"></div>
+    <div class="field"><label>E-mail</label><input id="lgEmail" type="email" autocomplete="username" autocapitalize="none"></div>
+    <div class="field"><label>Senha</label><input id="lgSenha" type="password" autocomplete="current-password"></div>
+    <button class="save" id="lgEntrar" type="button">Entrar</button>
+    <div class="login-links"><button id="lgTroca" type="button">Criar conta</button><button id="lgEsqueci" type="button">Esqueci a senha</button></div>
+    <div class="login-msg" id="lgMsg"></div>
+  </div>
 </div>
 
 <script>
@@ -280,35 +366,77 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
    CONFIGURAÇÃO GERAL
    ========================================================= */
 const APP_NOME='Apontamento';
-const APP_VERSAO='2.4';          // mude aqui a cada atualização
-const PRAZO_DIAS=3;              // dias até o aviso de buscar
-const REPO_GITHUB='Correcao-999'; // ⚠️ só para o desenvolvedor: nome do repositório no GitHub
+const APP_VERSAO='3.0';            // mude aqui a cada atualização
+const REPO_GITHUB='Correcao-999';  // ⚠️ só para o desenvolvedor: nome do repositório no GitHub
 
-// Mesmas chaves do app 999 → os lançamentos antigos continuam aparecendo
-const KEY='999_correcoes_v1', TRASH='999_lixeira_v1', FILTRO_KEY='apontamento_filtro_etapa';
+const PRAZO_DIAS=7;                // prazo para resolver o apontamento
+const AVISOS_DIAS=[3,1];           // avisos quando faltarem 3 dias e 1 dia
+
+// Mapa Mapbox (chave pública pk.)
+const MAPBOX_TOKEN='pk.eyJ1IjoibHVpc3NpcXVlaXJhIiwiYSI6ImNtdWE3eWlkYzFhaWkyd29rdTE1azczOW0ifQ.obU3pPCEHP856-OvuFE19g';
+
+// FIREBASE — cole aqui a configuração do projeto Cofre-Seguro
+// (Console do Firebase → ⚙️ Configurações do projeto → Seus apps → app da Web → Configuração)
+// Enquanto apiKey estiver vazio, o app funciona só no aparelho.
+const FIREBASE_CONFIG={
+  apiKey:"",
+  authDomain:"",
+  projectId:"",
+  storageBucket:"",
+  messagingSenderId:"",
+  appId:""
+};
+// E-mail(s) do desenvolvedor (você). Tem que ser o mesmo das regras do Firestore.
+const DEV_EMAILS=['seu-email@gmail.com'];
+
+// Coleções no Firestore (separadas dos outros apps do mesmo projeto)
+const COL_REG='apontamento_registros', COL_USR='apontamento_usuarios';
+
+// Cidade para o mapa e para procurar endereços
+const CIDADE='Tatuí - SP';
+const CENTRO_CIDADE=[-23.3556,-47.8569];
+
+// Chaves do aparelho (as mesmas do 999, os lançamentos antigos continuam)
+const KEY='999_correcoes_v1', TRASH='999_lixeira_v1', FILTRO_KEY='apontamento_filtro_etapa', RESP_KEY='apontamento_ultimo_resp';
 
 /* =========================================================
-   PERFIS (estrutura preparada para desenvolvedor e administrador)
-   Hoje todo mundo entra como "usuario". Quando o login (Firebase)
-   for ligado, basta preencher usuarioAtual com o perfil da conta.
+   PERFIS
    ========================================================= */
 const PERFIS={
   desenvolvedor:{nome:'Desenvolvedor', permissoes:['lancar','editar','excluir','restaurar','exportar','admin','dev']},
-  administrador:{nome:'Administrador', permissoes:['lancar','editar','excluir','restaurar','exportar','admin']},
-  usuario:      {nome:'Usuário',       permissoes:['lancar','editar','excluir','restaurar','exportar']}
+  administrador:{nome:'Administradora', permissoes:['lancar','editar','excluir','restaurar','exportar','admin']},
+  usuario:      {nome:'Usuário',        permissoes:['lancar','editar','excluir','restaurar','exportar']}
 };
-let usuarioAtual={nome:'',email:'',perfil:'usuario'};
+let usuarioAtual={uid:'local',nome:'',email:'',perfil:'usuario'};
+function pode(acao){return (PERFIS[usuarioAtual.perfil]||PERFIS.usuario).permissoes.includes(acao)}
+function ehDev(email){return DEV_EMAILS.map(e=>e.toLowerCase().trim()).includes(String(email||'').toLowerCase().trim())}
 
-function pode(acao){
-  const p=PERFIS[usuarioAtual.perfil]||PERFIS.usuario;
-  return p.permissoes.includes(acao);
+/* =========================================================
+   UTILITÁRIOS
+   ========================================================= */
+const $=id=>document.getElementById(id);
+const pad=v=>String(v).padStart(2,'0');
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+function fmt(v){return v?v.split('-').reverse().join('/'):''}
+function hojeLocal(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function somaDias(iso,n){const d=new Date(iso+'T00:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function vencimento(r){return somaDias(r.data,PRAZO_DIAS)}
+function diasRestantes(r){
+  const v=new Date(vencimento(r)+'T00:00:00');const hoje=new Date();hoje.setHours(0,0,0,0);
+  return Math.round((v-hoje)/86400000);
 }
-function aplicarPerfil(){
-  document.querySelectorAll('[data-perfis]').forEach(el=>{
-    el.hidden=!el.dataset.perfis.split(' ').includes(usuarioAtual.perfil);
-  });
-  const p=PERFIS[usuarioAtual.perfil]||PERFIS.usuario;
-  $('perfilBox').innerHTML=`👤 Perfil: <b>${p.nome}</b>${usuarioAtual.nome?'<br>'+esc(usuarioAtual.nome):''}`;
+function novoId(){return crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2)}
+function limpo(o){return JSON.parse(JSON.stringify(o))}
+function cls(status){return status==='Esperando'?'red':status==='Em execução'?'yellow':'green'}
+
+function prazoInfo(r){
+  if(r.status==='Executado') return {txt:'Executado',c:'fim',late:false,nivel:0};
+  const d=diasRestantes(r);
+  if(d<0)  return {txt:`🔴 Vencido há ${-d} dia${d===-1?'':'s'}`,c:'atrasado',late:true,nivel:4};
+  if(d===0)return {txt:'🔴 Vence hoje',c:'atrasado',late:true,nivel:4};
+  if(d===1)return {txt:'🟠 Vence amanhã',c:'amanha',late:true,nivel:3};
+  if(d<=AVISOS_DIAS[0])return {txt:`🟡 Faltam ${d} dias`,c:'alerta',late:false,nivel:2};
+  return {txt:`Faltam ${d} dias`,c:'ok',late:false,nivel:1};
 }
 
 /* =========================================================
@@ -316,67 +444,96 @@ function aplicarPerfil(){
    ========================================================= */
 const STATUS=['Esperando','Em execução','Executado'];
 const STATUS_ANTIGO={'Pendente':'Esperando','Aguardando retorno':'Em execução','Resolvido':'Executado'};
-
-let records=JSON.parse(localStorage.getItem(KEY)||'[]');
-let trash=JSON.parse(localStorage.getItem(TRASH)||'[]');
-let editId=null, photoData='', tipoAtual='999';
-
-// Converte lançamentos antigos para o novo formato
 function migrar(r){
   if(STATUS_ANTIGO[r.status]) r.status=STATUS_ANTIGO[r.status];
   if(!STATUS.includes(r.status)) r.status='Esperando';
   if(r.tipo!=='REP') r.tipo='999';
+  if(r.lixeira!==true) r.lixeira=false;
   return r;
 }
-records=records.map(migrar); trash=trash.map(migrar);
 
-const $=id=>document.getElementById(id);
-const pad=v=>String(v).padStart(2,'0');
+let records=[], usuarios=[];
+let modoNuvem=false, db=null, auth=null, unsubReg=null, unsubUsr=null;
+let editId=null, photoData='', tipoAtual='999';
 
-function hojeLocal(){
-  const d=new Date();
-  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+// Modo aparelho: lixeira antiga passa a ser um campo do próprio apontamento
+function carregarLocal(){
+  records=JSON.parse(localStorage.getItem(KEY)||'[]').map(migrar);
+  const lixo=JSON.parse(localStorage.getItem(TRASH)||'[]').map(migrar);
+  if(lixo.length){lixo.forEach(r=>{r.lixeira=true;if(!records.some(x=>x.id===r.id))records.push(r)});localStorage.setItem(TRASH,'[]');}
+  salvarLocal();
 }
-function saveStore(){
-  try{localStorage.setItem(KEY,JSON.stringify(records));localStorage.setItem(TRASH,JSON.stringify(trash));}
-  catch(e){alert('Não foi possível salvar. A memória do app pode estar cheia (fotos ocupam bastante espaço).');}
+function salvarLocal(){
+  try{localStorage.setItem(KEY,JSON.stringify(records))}
+  catch(e){alert('Não foi possível salvar. A memória do app pode estar cheia (fotos ocupam bastante espaço).')}
 }
-function cls(status){return status==='Esperando'?'red':status==='Em execução'?'yellow':'green'}
-function daysLeft(date){
-  const d=new Date(date+'T00:00:00'); const now=new Date(); now.setHours(0,0,0,0);
-  return PRAZO_DIAS-Math.round((now-d)/86400000);
+
+// Grava um apontamento (nuvem ou aparelho)
+function gravar(r){
+  r.atualizadoEm=Date.now();
+  if(modoNuvem){
+    setStatus('laranja');
+    db.collection(COL_REG).doc(r.id).set(limpo(r)).catch(erroNuvem);
+  }else{
+    const i=records.findIndex(x=>x.id===r.id);
+    if(i<0)records.unshift(r);else records[i]=r;
+    salvarLocal();render();
+  }
 }
-function prazoInfo(r){
-  if(r.status==='Executado') return {txt:'Executado',c:'fim',late:false};
-  const left=daysLeft(r.data);
-  if(left>0) return {txt:`Buscar em ${left} dia${left===1?'':'s'}`,c:'ok',late:false};
-  if(left===0) return {txt:'⚠️ Buscar hoje',c:'hoje',late:true};
-  const a=-left;
-  return {txt:`⚠️ Buscar — atrasado ${a} dia${a===1?'':'s'}`,c:'atrasado',late:true};
+
+// O que cada perfil enxerga
+let soMeus=false;
+function visiveis(){
+  let l=records.filter(r=>!r.lixeira);
+  if(!modoNuvem) return l;
+  const u=usuarioAtual;
+  if(u.perfil==='usuario') return l.filter(r=>r.criadoPor===u.uid);
+  if(soMeus) return l.filter(r=>r.responsavelUid===u.uid||r.criadoPor===u.uid);
+  return l;
 }
-function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function fmt(v){return v?v.split('-').reverse().join('/'):''}
 
 /* =========================================================
-   ETAPAS
+   STATUS DA NUVEM (bolinhas)
    ========================================================= */
-for(let i=1;i<=18;i++){
-  $('etapa').add(new Option(pad(i),i));
-  $('filtroEtapa').add(new Option('Etapa '+pad(i),i));
+const BOLINHA={verde:'🟢',amarelo:'🟡',laranja:'🟠',vermelho:'🔴'};
+function setStatus(c){$('fbDot').textContent=BOLINHA[c]||'🟡';$('fbDot').dataset.estado=c}
+function erroNuvem(e){console.error(e);setStatus('vermelho')}
+$('fbDot').onclick=()=>abrirLegenda();
+function abrirLegenda(){
+  $('legendaModo').textContent=modoNuvem
+    ?'Os apontamentos ficam na nuvem e aparecem para quem tiver acesso.'
+    :'O Firebase ainda não está ligado neste app: os apontamentos ficam só neste aparelho (🟠).';
+  $('legendaModal').style.display='flex';
 }
+$('fbSync').onclick=()=>{
+  if(!modoNuvem){abrirLegenda();return}
+  setStatus('amarelo');
+  db.disableNetwork().then(()=>db.enableNetwork()).catch(erroNuvem);
+};
+
+/* =========================================================
+   ETAPAS, TIPO, RESPONSÁVEL
+   ========================================================= */
+for(let i=1;i<=18;i++){$('etapa').add(new Option(pad(i),i));$('filtroEtapa').add(new Option('Etapa '+pad(i),i))}
 $('filtroEtapa').value=localStorage.getItem(FILTRO_KEY)||'';
-$('filtroEtapa').onchange=()=>{precisaAjustar=true;localStorage.setItem(FILTRO_KEY,$('filtroEtapa').value);render();};
+$('filtroEtapa').onchange=()=>{precisaAjustar=true;localStorage.setItem(FILTRO_KEY,$('filtroEtapa').value);render()};
 $('data').value=hojeLocal();
+$('hintPrazo').textContent=`Todo novo apontamento começa como Esperando. Prazo de ${PRAZO_DIAS} dias, com aviso quando faltarem ${AVISOS_DIAS.join(' e ')} dia(s).`;
 
-/* =========================================================
-   TIPO 999 / REP
-   ========================================================= */
 document.querySelectorAll('.tipo-toggle button').forEach(b=>{
-  b.onclick=()=>{
-    tipoAtual=b.dataset.tipo;
-    document.querySelectorAll('.tipo-toggle button').forEach(x=>x.classList.toggle('on',x===b));
-  };
+  b.onclick=()=>{tipoAtual=b.dataset.tipo;document.querySelectorAll('.tipo-toggle button').forEach(x=>x.classList.toggle('on',x===b))};
 });
+
+function administradoras(){return usuarios.filter(u=>u.perfil==='administrador').sort((a,b)=>String(a.nome).localeCompare(b.nome))}
+function opcoesResp(sel,valor){
+  sel.innerHTML='<option value="">Sem responsável</option>'+administradoras().map(u=>`<option value="${u.uid}">${esc(u.nome)}</option>`).join('');
+  sel.value=administradoras().some(u=>u.uid===valor)?valor:'';
+}
+function preencherResponsaveis(){opcoesResp($('responsavel'),$('responsavel').value||localStorage.getItem(RESP_KEY)||'')}
+$('responsavel').onchange=()=>localStorage.setItem(RESP_KEY,$('responsavel').value);
+function nomeDe(uid){const u=usuarios.find(x=>x.uid===uid);return u?u.nome:''}
+
+$('soMeus').onchange=()=>{soMeus=$('soMeus').checked;precisaAjustar=true;render()};
 
 /* =========================================================
    LISTA
@@ -384,46 +541,70 @@ document.querySelectorAll('.tipo-toggle button').forEach(b=>{
 function card(r){
   const p=prazoInfo(r);
   const prox=r.status==='Esperando'?'Em execução':r.status==='Em execução'?'Executado':'';
+  const resp=r.responsavelNome?`<br>👤 Responsável: <b>${esc(r.responsavelNome)}</b>`:'';
+  const quem=(modoNuvem&&usuarioAtual.perfil!=='usuario'&&r.criadoPorNome)?` · lançado por ${esc(r.criadoPorNome)}`:'';
   return `<article class="record ${cls(r.status)} ${p.late?'late':''}">
     <div>
       <div class="rtitle"><span class="tipo ${r.tipo==='REP'?'rep':''}">${r.tipo}</span>${esc(r.endereco)}, ${esc(r.numero)}</div>
-      <div class="meta">Etapa ${pad(r.etapa)}<br>Medidor: ${esc(r.medidor)} · Leitura: ${r.leitura?esc(r.leitura):'<i>sem leitura</i>'}<br>📅 ${fmt(r.data)} · <span class="prazo ${p.c}">${p.txt}</span></div>
-      ${r.photo?'<div class="meta">📸 Foto anexada</div>':''}
-      <div class="actions"><button class="small edit" onclick="editRecord('${r.id}')">✏️ Editar</button><button class="small ir" onclick="abrirRota('${r.id}')">📍 Ir</button><button class="small del" onclick="deleteRecord('${r.id}')">🗑️ Excluir</button></div>
+      <div class="meta">Etapa ${pad(r.etapa)} · Medidor: ${esc(r.medidor)} · Leitura: ${r.leitura?esc(r.leitura):'<i>sem leitura</i>'}<br>📅 ${fmt(r.data)}${quem} · vence ${fmt(vencimento(r))}<br><span class="prazo ${p.c}">${p.txt}</span>${resp}</div>
+      ${r.photo?`<button class="foto-link" onclick="verFoto('${r.id}')">📸 Ver foto</button>`:''}
+      <div class="actions">
+        <button class="small edit" onclick="editRecord('${r.id}')">✏️ Editar</button>
+        <button class="small ir" onclick="abrirRota('${r.id}')">📍 Ir</button>
+        ${r.status!=='Executado'?`<button class="small agenda" onclick="lembreteAgenda('${r.id}')">📅 Agenda</button>`:''}
+        <button class="small del" onclick="deleteRecord('${r.id}')">🗑️</button>
+      </div>
     </div>
     <div class="record-right">
-      ${prox
-        ? `<button class="next-btn" title="Mover para ${prox}" onclick="nextStatus('${r.id}')">${prox==='Executado'?'Executar ›':'Iniciar ›'}</button>`
-        : `<button class="next-btn done" title="Executado" disabled>✓</button>`}
+      ${prox?`<button class="next-btn" title="Mover para ${prox}" onclick="nextStatus('${r.id}')">${prox==='Executado'?'Executar ›':'Iniciar ›'}</button>`
+            :`<button class="next-btn done" title="Executado" disabled>✓</button>`}
     </div>
   </article>`;
 }
 
 function renderAviso(){
-  const late=records.filter(r=>r.status!=='Executado'&&daysLeft(r.data)<=0);
-  if(!late.length){$('aviso').style.display='none';return}
-  const et=[...new Set(late.map(r=>Number(r.etapa)))].sort((a,b)=>a-b).map(pad).join(', ');
-  $('aviso').innerHTML=`⚠️ <b>${late.length} apontamento${late.length===1?'':'s'}</b> com ${PRAZO_DIAS} dias ou mais — hora de buscar.<br>Etapa${et.includes(',')?'s':''}: ${et}`;
+  const l=visiveis().filter(r=>r.status!=='Executado');
+  const venc=l.filter(r=>diasRestantes(r)<=0), amanha=l.filter(r=>diasRestantes(r)===1),
+        perto=l.filter(r=>{const d=diasRestantes(r);return d>1&&d<=AVISOS_DIAS[0]});
+  const todos=[...venc,...amanha,...perto];
+  if(!todos.length){$('aviso').style.display='none';return}
+  const linhas=[];
+  if(venc.length)  linhas.push(`🔴 <b>${venc.length}</b> vencido${venc.length>1?'s':''} ou vencendo hoje`);
+  if(amanha.length)linhas.push(`🟠 <b>${amanha.length}</b> vence${amanha.length>1?'m':''} amanhã`);
+  if(perto.length) linhas.push(`🟡 <b>${perto.length}</b> com ${AVISOS_DIAS[0]} dias ou menos`);
+  const et=[...new Set(todos.map(r=>Number(r.etapa)))].sort((a,b)=>a-b).map(pad).join(', ');
+  $('aviso').innerHTML=linhas.join('<br>')+`<br>Etapa${et.includes(',')?'s':''}: ${et}`;
   $('aviso').style.display='block';
+  avisoDoDia(venc,amanha,perto);
+}
+
+// Aviso que aparece uma vez por dia para a administradora (itens em que ela é responsável)
+function avisoDoDia(venc,amanha,perto){
+  if(!modoNuvem||usuarioAtual.perfil!=='administrador')return;
+  const meus=a=>a.filter(r=>r.responsavelUid===usuarioAtual.uid).length;
+  const v=meus(venc),a=meus(amanha),p=meus(perto);
+  if(!(v+a+p))return;
+  const chave='apontamento_aviso_'+usuarioAtual.uid;
+  if(localStorage.getItem(chave)===hojeLocal())return;
+  localStorage.setItem(chave,hojeLocal());
+  setTimeout(()=>alert(`⚠️ Seus apontamentos:\n`+(v?`\n🔴 ${v} vencido(s) ou vencendo hoje`:'')+(a?`\n🟠 ${a} vence(m) amanhã`:'')+(p?`\n🟡 ${p} com ${AVISOS_DIAS[0]} dias ou menos`:'')),400);
 }
 
 let executadoAberto=false;
 function render(){
   const q=$('search').value.toLowerCase().trim();
   const f=$('filtroEtapa').value;
-  const base=records.filter(r=>
+  const base=visiveis().filter(r=>
     (!f||String(r.etapa)===f) &&
-    (!q||[r.endereco,r.numero,r.medidor,r.leitura,r.tipo,r.status,fmt(r.data)].join(' ').toLowerCase().includes(q))
+    (!q||[r.endereco,r.numero,r.medidor,r.leitura,r.tipo,r.status,fmt(r.data),r.responsavelNome,r.criadoPorNome].join(' ').toLowerCase().includes(q))
   );
   $('count').textContent=base.length;
   renderAviso();
   atualizarMapa(base);
-
   if(!base.length){
     $('records').innerHTML=`<div class="empty">${f?'Nenhum apontamento na Etapa '+pad(f)+'.':'Nenhum apontamento encontrado.'}</div>`;
     return;
   }
-
   const grupos=[
     {st:'Esperando',  classe:'g-esperando',icone:'⏳'},
     {st:'Em execução',classe:'g-execucao', icone:'🔧'},
@@ -434,30 +615,49 @@ function render(){
       .sort((a,b)=>g.st==='Executado'?b.data.localeCompare(a.data):a.data.localeCompare(b.data));
     const corpo=lst.length?lst.map(card).join(''):'<div class="vazio-grupo">Nada aqui.</div>';
     const head=`<span class="lbl">${g.icone} ${g.st}</span><span class="n">${lst.length}</span>`;
-    if(g.st==='Executado'){
-      return `<details class="grupo ${g.classe}" ${executadoAberto?'open':''} ontoggle="executadoAberto=this.open"><summary class="grupo-head">${head}</summary>${corpo}</details>`;
-    }
+    if(g.st==='Executado') return `<details class="grupo ${g.classe}" ${executadoAberto?'open':''} ontoggle="executadoAberto=this.open"><summary class="grupo-head">${head}</summary>${corpo}</details>`;
     return `<div class="grupo ${g.classe}"><div class="grupo-head">${head}</div>${corpo}</div>`;
   }).join('');
 }
 
+function acha(id){return records.find(x=>x.id===id)}
 function nextStatus(id){
-  const r=records.find(x=>x.id===id); if(!r)return;
+  const r=acha(id);if(!r)return;
   r.status=r.status==='Esperando'?'Em execução':'Executado';
-  saveStore();render();
+  gravar(r);
 }
 function deleteRecord(id){
   if(!pode('excluir')){alert('Seu perfil não pode excluir.');return}
-  const r=records.find(x=>x.id===id);if(!r)return;
-  if(confirm('Enviar este apontamento para a lixeira?')){records=records.filter(x=>x.id!==id);trash.push(r);saveStore();render();}
+  const r=acha(id);if(!r)return;
+  if(confirm('Enviar este apontamento para a lixeira?')){r.lixeira=true;gravar(r)}
+}
+function verFoto(id){const r=acha(id);if(!r||!r.photo)return;$('fotoGrande').src=r.photo;$('fotoModal').style.display='flex'}
+
+/* =========================================================
+   LEMBRETE NA AGENDA DO CELULAR (avisa 3 dias e 1 dia antes)
+   ========================================================= */
+function lembreteAgenda(id){
+  const r=acha(id);if(!r)return;
+  const v=vencimento(r).replace(/-/g,'');
+  const agora=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  const txt=s=>String(s??'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+  const alarmes=AVISOS_DIAS.map(d=>['BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:${txt(`Apontamento ${r.tipo}: faltam ${d} dia${d>1?'s':''}`)}`,`TRIGGER:-P${d}D`,'END:VALARM'].join('\r\n'));
+  const ics=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Apontamento//PT-BR','CALSCALE:GREGORIAN','BEGIN:VEVENT',
+    `UID:${r.id}@apontamento`,`DTSTAMP:${agora}`,`DTSTART:${v}T080000`,`DTEND:${v}T083000`,
+    `SUMMARY:${txt(`Vence apontamento ${r.tipo} — ${r.endereco}, ${r.numero}`)}`,
+    `DESCRIPTION:${txt(`Medidor ${r.medidor} · Etapa ${pad(r.etapa)} · Lançado em ${fmt(r.data)}`)}`,
+    `LOCATION:${txt(`${r.endereco}, ${r.numero}, ${CIDADE}`)}`,
+    ...alarmes,'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  location.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(ics);
 }
 
 /* =========================================================
    EDITAR
    ========================================================= */
+let editLoc=null;
 function editRecord(id){
   if(!pode('editar')){alert('Seu perfil não pode editar.');return}
-  const r=records.find(x=>x.id===id);if(!r)return;editId=id;
+  const r=acha(id);if(!r)return;editId=id;editLoc=null;
   $('editFields').innerHTML=`
   <div class="grid">
     <div class="field"><label>Tipo *</label><select id="e_tipo"><option>999</option><option>REP</option></select></div>
@@ -473,22 +673,24 @@ function editRecord(id){
     <div class="field"><label>Etapa *</label><select id="e_et"></select></div>
     <div class="field"><label>Data *</label><input id="e_data" type="date" value="${r.data}"></div>
   </div>
+  ${modoNuvem?'<div class="field"><label>Responsável</label><select id="e_resp"></select></div>':''}
   <div class="loc-line ${r.loc?'ok':''}"><span id="e_locTxt">${r.loc?(r.loc.aprox?'📍 Local aproximado (pelo endereço)':'📍 Tem localização'):'📍 Sem localização'}</span><button type="button" onclick="editPegarLoc()">Usar local atual</button></div>`;
-  editLoc=null;
   const s=$('e_et');for(let i=1;i<=18;i++)s.add(new Option(pad(i),i));
   s.value=r.etapa;$('e_status').value=r.status;$('e_tipo').value=r.tipo;
+  if(modoNuvem)opcoesResp($('e_resp'),r.responsavelUid||'');
   $('editModal').style.display='flex';
 }
 $('saveEdit').onclick=()=>{
-  const r=records.find(x=>x.id===editId);if(!r)return;
+  const r=acha(editId);if(!r)return;
   const n={tipo:$('e_tipo').value,endereco:$('e_end').value.trim(),numero:$('e_num').value.trim(),medidor:$('e_med').value.trim(),leitura:$('e_leit').value.trim(),etapa:$('e_et').value,data:$('e_data').value,status:$('e_status').value};
   if(!n.endereco||!n.numero||!n.medidor||!n.etapa||!n.data){alert('Preencha todos os campos obrigatórios.');return}
-  if(editLoc) n.loc=editLoc;
-  Object.assign(r,n);
-  saveStore();$('editModal').style.display='none';render();
+  if(modoNuvem){n.responsavelUid=$('e_resp').value||'';n.responsavelNome=n.responsavelUid?nomeDe(n.responsavelUid):''}
+  if(editLoc)n.loc=editLoc;
+  Object.assign(r,n);gravar(r);$('editModal').style.display='none';
 };
 $('deleteEdit').onclick=()=>{if(editId){$('editModal').style.display='none';deleteRecord(editId)}};
 $('closeEdit').onclick=()=>$('editModal').style.display='none';
+document.querySelectorAll('[data-fechar]').forEach(b=>b.onclick=()=>$(b.dataset.fechar).style.display='none');
 
 /* =========================================================
    NOVO APONTAMENTO
@@ -496,27 +698,40 @@ $('closeEdit').onclick=()=>$('editModal').style.display='none';
 $('form').onsubmit=e=>{
   e.preventDefault();
   if(!pode('lancar')){alert('Seu perfil não pode lançar.');return}
-  const campos=['endereco','numero','medidor','etapa','data'];
-  const faltando=campos.find(c=>!$(c).value.trim());
+  const faltando=['endereco','numero','medidor','etapa','data'].find(c=>!$(c).value.trim());
   if(faltando){alert('Preencha todos os campos obrigatórios.');$(faltando).focus();return}
+  const respUid=modoNuvem?$('responsavel').value:'';
   const novo={
-    id:(crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random())),
-    tipo:tipoAtual,
+    id:novoId(),tipo:tipoAtual,
     endereco:$('endereco').value.trim(),numero:$('numero').value.trim(),
     medidor:$('medidor').value.trim(),leitura:$('leitura').value.trim(),
     etapa:$('etapa').value,data:$('data').value,
-    status:'Esperando',photo:photoData,loc:locAtual
+    status:'Esperando',photo:photoData,loc:locAtual,lixeira:false,
+    criadoPor:usuarioAtual.uid,criadoPorNome:usuarioAtual.nome||'',criadoEm:Date.now(),
+    responsavelUid:respUid,responsavelNome:respUid?nomeDe(respUid):''
   };
-  records.unshift(novo);
-  saveStore();
-  // Mostra a lista já na etapa do lançamento
-  $('filtroEtapa').value=novo.etapa; localStorage.setItem(FILTRO_KEY,novo.etapa);
+  gravar(novo);
+  $('filtroEtapa').value=novo.etapa;localStorage.setItem(FILTRO_KEY,novo.etapa);
   precisaAjustar=true;resetLoc();
   e.target.reset();$('data').value=hojeLocal();photoData='';$('preview').style.display='none';
+  if(modoNuvem)preencherResponsaveis();
   render();window.scrollTo({top:0,behavior:'smooth'});
 };
+
+// Foto reduzida (para caber na nuvem e não encher o celular)
+function comprimirFoto(file,cb){
+  const url=URL.createObjectURL(file),img=new Image();
+  img.onload=()=>{
+    const k=Math.min(1,1000/Math.max(img.width,img.height));
+    const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+    cb(c.toDataURL('image/jpeg',0.6));
+  };
+  img.onerror=()=>{URL.revokeObjectURL(url);alert('Não consegui abrir a foto.')};
+  img.src=url;
+}
 $('cameraBtn').onclick=()=>$('photo').click();
-$('photo').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{photoData=rd.result;$('previewImg').src=photoData;$('preview').style.display='block'};rd.readAsDataURL(f)};
+$('photo').onchange=e=>{const f=e.target.files[0];if(!f)return;comprimirFoto(f,d=>{photoData=d;$('previewImg').src=d;$('preview').style.display='block'})};
 $('removePhoto').onclick=()=>{photoData='';$('photo').value='';$('preview').style.display='none'};
 $('search').oninput=render;
 
@@ -525,8 +740,9 @@ $('search').oninput=render;
    ========================================================= */
 function openMenu(){$('overlay').style.display='block'} function closeMenu(){$('overlay').style.display='none'}
 $('menuBtn').onclick=openMenu;$('closeMenu').onclick=closeMenu;$('overlay').onclick=e=>{if(e.target===$('overlay'))closeMenu()};
+$('openLegenda').onclick=()=>{closeMenu();abrirLegenda()};
 
-function urlDoApp(){const u=new URL(location.href);u.hash='';u.searchParams.delete('v');return u.toString();}
+function urlDoApp(){const u=new URL(location.href);u.hash='';u.searchParams.delete('v');return u.toString()}
 async function share(text,title=APP_NOME+' — Correção de Lançamentos'){
   const url=urlDoApp();
   if(navigator.share){try{await navigator.share({title,text,url})}catch(e){}}
@@ -535,76 +751,83 @@ async function share(text,title=APP_NOME+' — Correção de Lançamentos'){
 }
 $('shareTop').onclick=()=>share('Confira o aplicativo Apontamento — Correção de Lançamentos.');
 $('shareApp').onclick=()=>{closeMenu();share('Conheça o aplicativo Apontamento — Correção de Lançamentos.')};
+function listaFiltrada(){const f=$('filtroEtapa').value;return visiveis().filter(r=>!f||String(r.etapa)===f)}
 $('shareInfo').onclick=()=>{
   closeMenu();
-  const f=$('filtroEtapa').value;
-  const lst=records.filter(r=>!f||String(r.etapa)===f);
-  share(lst.map(r=>`[${r.tipo}] ${r.endereco}, ${r.numero} | Etapa ${pad(r.etapa)} | ${r.status}`).join('\n')||'Nenhum apontamento registrado.');
+  share(listaFiltrada().map(r=>`[${r.tipo}] ${r.endereco}, ${r.numero} | Etapa ${pad(r.etapa)} | ${r.status} | vence ${fmt(vencimento(r))}${r.responsavelNome?' | '+r.responsavelNome:''}`).join('\n')||'Nenhum apontamento registrado.');
 };
+function baixar(conteudo,tipo,nome){
+  const blob=new Blob([conteudo],{type:tipo}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=nome;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
 $('exportData').onclick=()=>{
-  closeMenu();
-  if(!pode('exportar')){alert('Seu perfil não pode exportar.');return}
-  const blob=new Blob([JSON.stringify(records,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download='apontamento-lancamentos.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  closeMenu();if(!pode('exportar')){alert('Seu perfil não pode exportar.');return}
+  baixar(JSON.stringify(visiveis(),null,2),'application/json','apontamento-backup-'+hojeLocal()+'.json');
 };
 $('exportCSV').onclick=()=>{
-  closeMenu();
-  if(!pode('exportar')){alert('Seu perfil não pode exportar.');return}
+  closeMenu();if(!pode('exportar')){alert('Seu perfil não pode exportar.');return}
   const f=$('filtroEtapa').value;
-  const lst=records.filter(r=>!f||String(r.etapa)===f)
-    .sort((a,b)=>Number(a.etapa)-Number(b.etapa)||STATUS.indexOf(a.status)-STATUS.indexOf(b.status)||a.data.localeCompare(b.data));
+  const lst=listaFiltrada().sort((a,b)=>Number(a.etapa)-Number(b.etapa)||STATUS.indexOf(a.status)-STATUS.indexOf(b.status)||a.data.localeCompare(b.data));
   if(!lst.length){alert(f?'Nenhum apontamento na Etapa '+pad(f)+' para exportar.':'Não há apontamentos para exportar.');return}
-  const linhas=[['Tipo','Endereço','Número','Medidor','Leitura','Etapa','Data','Situação','Prazo','Foto','Latitude','Longitude']];
-  lst.forEach(r=>linhas.push([r.tipo,r.endereco,r.numero,r.medidor,r.leitura,pad(r.etapa),fmt(r.data),r.status,prazoInfo(r).txt.replace('⚠️ ',''),r.photo?'Sim':'Não',r.loc?String(r.loc.lat).replace('.',','):'',r.loc?String(r.loc.lng).replace('.',','):'']));
+  const linhas=[['Tipo','Endereço','Número','Medidor','Leitura','Etapa','Data','Vencimento','Situação','Prazo','Responsável','Lançado por','Foto','Latitude','Longitude']];
+  lst.forEach(r=>linhas.push([r.tipo,r.endereco,r.numero,r.medidor,r.leitura,pad(r.etapa),fmt(r.data),fmt(vencimento(r)),r.status,prazoInfo(r).txt.replace(/^[^A-Za-zÀ-ú]+/,''),r.responsavelNome||'',r.criadoPorNome||'',r.photo?'Sim':'Não',r.loc?String(r.loc.lat).replace('.',','):'',r.loc?String(r.loc.lng).replace('.',','):'']));
   const csv='\ufeff'+linhas.map(l=>l.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download='apontamento'+(f?'-etapa-'+pad(f):'')+'-'+hojeLocal()+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  baixar(csv,'text/csv;charset=utf-8','apontamento'+(f?'-etapa-'+pad(f):'')+'-'+hojeLocal()+'.csv');
 };
 function renderTrash(){
-  if(!trash.length){$('trashList').innerHTML='<div class="empty">A lixeira está vazia.</div>';return}
-  $('trashList').innerHTML=trash.map(r=>`<div class="trashrow"><div><b>[${r.tipo}] ${esc(r.endereco)}, ${esc(r.numero)}</b><br><small>Etapa ${pad(r.etapa)}</small></div><button class="small edit" onclick="restore('${r.id}')">Restaurar</button></div>`).join('');
+  let lixo=records.filter(r=>r.lixeira);
+  if(modoNuvem&&usuarioAtual.perfil==='usuario')lixo=lixo.filter(r=>r.criadoPor===usuarioAtual.uid);
+  if(!lixo.length){$('trashList').innerHTML='<div class="empty">A lixeira está vazia.</div>';return}
+  $('trashList').innerHTML=lixo.map(r=>`<div class="trashrow"><div><b>[${r.tipo}] ${esc(r.endereco)}, ${esc(r.numero)}</b><br><small>Etapa ${pad(r.etapa)}</small></div><button class="small edit" onclick="restore('${r.id}')">Restaurar</button></div>`).join('');
 }
 function restore(id){
   if(!pode('restaurar')){alert('Seu perfil não pode restaurar.');return}
-  const r=trash.find(x=>x.id===id);if(!r)return;trash=trash.filter(x=>x.id!==id);records.unshift(r);saveStore();renderTrash();render();
+  const r=acha(id);if(!r)return;r.lixeira=false;gravar(r);setTimeout(renderTrash,300);
 }
 $('openTrash').onclick=()=>{closeMenu();renderTrash();$('trashModal').style.display='flex'};
-$('closeTrash').onclick=()=>$('trashModal').style.display='none';
 
-// Áreas reservadas (conteúdo entra quando o login estiver pronto)
-$('adminArea').onclick=()=>{closeMenu();alert('Área do administrador em preparação.')};
-$('devArea').onclick=()=>{closeMenu();alert('Ferramentas do desenvolvedor\n\nVersão: '+APP_VERSAO+'\nRepositório GitHub: '+REPO_GITHUB+'\n(o app se chama Apontamento, mas sobe no repositório do 999)')};
+$('adminArea').onclick=()=>{closeMenu();soMeus=true;$('soMeus').checked=true;precisaAjustar=true;render();$('records').scrollIntoView({behavior:'smooth'})};
+$('devArea').onclick=()=>{
+  closeMenu();
+  alert('Ferramentas do desenvolvedor\n\nVersão: '+APP_VERSAO+'\nRepositório GitHub: '+REPO_GITHUB+'\n(o app se chama Apontamento, mas sobe no repositório do 999)\n\nFirebase: '+(modoNuvem?'ligado ('+FIREBASE_CONFIG.projectId+')':'desligado (só no aparelho)')+'\nPrazo: '+PRAZO_DIAS+' dias · avisos: '+AVISOS_DIAS.join(' e ')+' dia(s) antes');
+};
+
+/* Gerenciar usuários (só desenvolvedor) */
+function renderUsuarios(){
+  if(!$('usersModal')||usuarioAtual.perfil!=='desenvolvedor')return;
+  if(!usuarios.length){$('usersList').innerHTML='<div class="empty">Ninguém cadastrado ainda.</div>';return}
+  $('usersList').innerHTML=usuarios.slice().sort((a,b)=>String(a.nome).localeCompare(b.nome)).map(u=>{
+    if(ehDev(u.email))return `<div class="userrow"><div><b>${esc(u.nome)}</b><br><small>${esc(u.email)}</small></div><b style="font-size:12px">Desenvolvedor</b></div>`;
+    return `<div class="userrow"><div><b>${esc(u.nome)}</b><br><small>${esc(u.email)}</small></div>
+      <select onchange="mudarPerfil('${u.uid}',this.value)"><option value="usuario" ${u.perfil==='usuario'?'selected':''}>Usuário</option><option value="administrador" ${u.perfil==='administrador'?'selected':''}>Administradora</option></select></div>`;
+  }).join('');
+}
+function mudarPerfil(uid,perfil){
+  setStatus('laranja');
+  db.collection(COL_USR).doc(uid).update({perfil}).then(()=>setStatus('verde')).catch(e=>{erroNuvem(e);alert('Não consegui mudar o perfil. Confira as regras do Firestore.')});
+}
+$('usersArea').onclick=()=>{closeMenu();renderUsuarios();$('usersModal').style.display='flex'};
 
 /* =========================================================
    ATUALIZAR APP (não apaga os apontamentos)
    ========================================================= */
 async function atualizarApp(){
   closeMenu();
-  const b=$('updateTop'); b.disabled=true; b.textContent='⏳';
+  const b=$('updateTop');b.disabled=true;b.textContent='⏳';
   try{
-    if('serviceWorker' in navigator){
-      const regs=await navigator.serviceWorker.getRegistrations();
-      for(const r of regs){try{await r.update()}catch(_){} try{await r.unregister()}catch(_){}}
-    }
+    if('serviceWorker' in navigator){const regs=await navigator.serviceWorker.getRegistrations();for(const r of regs){try{await r.update()}catch(_){} try{await r.unregister()}catch(_){}}}
     if(window.caches){const n=await caches.keys();await Promise.all(n.map(k=>caches.delete(k)))}
   }catch(_){}
-  const u=new URL(location.href);u.hash='';u.searchParams.set('v',Date.now());
-  location.replace(u.toString());
+  const u=new URL(location.href);u.hash='';u.searchParams.set('v',Date.now());location.replace(u.toString());
 }
-$('updateTop').onclick=atualizarApp;
-$('updateApp').onclick=atualizarApp;
+$('updateTop').onclick=atualizarApp;$('updateApp').onclick=atualizarApp;
 
 /* =========================================================
-   INÍCIO
+   LOCALIZAÇÃO E MAPA (Mapbox)
    ========================================================= */
-/* =========================================================
-   LOCALIZAÇÃO E MAPA
-   ========================================================= */
-const CIDADE='Tatuí - SP';
-const CENTRO_CIDADE=[-23.3556,-47.8569];
 const COR_STATUS={'Esperando':'#ef3340','Em execução':'#f5b900','Executado':'#18a957'};
-let locAtual=null, pegandoLoc=false, editLoc=null;
-let mapa=null, camada=null, marcaEu=null, ultimaBase=[], precisaAjustar=true;
+let locAtual=null,pegandoLoc=false;
+let mapa=null,camada=null,marcaEu=null,ultimaBase=[],precisaAjustar=true;
 let mapaAberto=localStorage.getItem('apontamento_mapa_aberto')==='1';
 
 function posicao(ok,erro){
@@ -612,32 +835,22 @@ function posicao(ok,erro){
   navigator.geolocation.getCurrentPosition(p=>ok({lat:+p.coords.latitude.toFixed(6),lng:+p.coords.longitude.toFixed(6),acc:Math.round(p.coords.accuracy)}),erro,{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
 }
 function msgErroLoc(e){return e&&e.code===1?'📍 Localização bloqueada — libere nos Ajustes':'📍 Não consegui a localização'}
-
 function pegarLocalizacao(forcar){
   if(pegandoLoc||(locAtual&&!forcar))return;
   pegandoLoc=true;$('locLine').className='loc-line';$('locTxt').textContent='📍 Pegando localização...';
-  posicao(l=>{
-    pegandoLoc=false;locAtual=l;
-    $('locLine').className='loc-line ok';$('locTxt').textContent=`📍 Localização pega (±${l.acc} m)`;$('locBtn').textContent='Pegar de novo';
-  },e=>{pegandoLoc=false;$('locTxt').textContent=msgErroLoc(e);$('locBtn').textContent='Tentar de novo';});
+  posicao(l=>{pegandoLoc=false;locAtual=l;$('locLine').className='loc-line ok';$('locTxt').textContent=`📍 Localização pega (±${l.acc} m)`;$('locBtn').textContent='Pegar de novo'},
+          e=>{pegandoLoc=false;$('locTxt').textContent=msgErroLoc(e);$('locBtn').textContent='Tentar de novo'});
 }
-function resetLoc(){
-  locAtual=null;$('locLine').className='loc-line';
-  $('locTxt').textContent='📍 Ao tocar em Endereço, o app pega a localização';$('locBtn').textContent='Pegar agora';
-}
+function resetLoc(){locAtual=null;$('locLine').className='loc-line';$('locTxt').textContent='📍 Ao tocar em Endereço, o app pega a localização';$('locBtn').textContent='Pegar agora'}
 $('endereco').addEventListener('focus',()=>pegarLocalizacao(false));
 $('locBtn').onclick=()=>pegarLocalizacao(true);
-
 function editPegarLoc(){
   $('e_locTxt').textContent='📍 Pegando localização...';
-  posicao(l=>{editLoc=l;$('e_locTxt').textContent=`📍 Local atual pego (±${l.acc} m) — toque em Salvar`;},e=>{$('e_locTxt').textContent=msgErroLoc(e);});
+  posicao(l=>{editLoc=l;$('e_locTxt').textContent=`📍 Local atual pego (±${l.acc} m) — toque em Salvar`},e=>{$('e_locTxt').textContent=msgErroLoc(e)});
 }
 
 function destino(r){return r.loc?`${r.loc.lat},${r.loc.lng}`:encodeURIComponent(`${r.endereco}, ${r.numero}, ${CIDADE}`)}
-function abrirRota(id){
-  const r=records.find(x=>x.id===id);if(!r)return;
-  window.open('https://maps.apple.com/?daddr='+destino(r)+'&dirflg=d','_blank');
-}
+function abrirRota(id){const r=acha(id);if(r)window.open('https://maps.apple.com/?daddr='+destino(r)+'&dirflg=d','_blank')}
 function linksRota(r){
   const d=destino(r);
   return `<a href="https://maps.apple.com/?daddr=${d}&dirflg=d" target="_blank">Maps</a><a href="https://www.google.com/maps/dir/?api=1&destination=${d}" target="_blank">Google</a>${r.loc?`<a href="https://waze.com/ul?ll=${d}&navigate=yes" target="_blank">Waze</a>`:''}`;
@@ -647,7 +860,13 @@ function iniciarMapa(){
   if(mapa)return true;
   if(typeof L==='undefined')return false;
   mapa=L.map('mapa').setView(CENTRO_CIDADE,13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(mapa);
+  const osm=()=>L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});
+  if(MAPBOX_TOKEN){
+    let trocou=false;
+    const mb=L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`,{tileSize:512,zoomOffset:-1,maxZoom:20,attribution:'© Mapbox © OpenStreetMap'});
+    mb.on('tileerror',()=>{if(trocou)return;trocou=true;mapa.removeLayer(mb);osm().addTo(mapa)}); // se a chave falhar, usa o mapa gratuito
+    mb.addTo(mapa);
+  }else osm().addTo(mapa);
   camada=L.layerGroup().addTo(mapa);
   return true;
 }
@@ -656,15 +875,15 @@ function atualizarMapa(base){
   if(!mapaAberto)return;
   if(!iniciarMapa()){$('semLocInfo').textContent='Sem internet: o mapa não carregou.';return}
   camada.clearLayers();
-  const com=base.filter(r=>r.loc), sem=base.length-com.length;
+  const com=base.filter(r=>r.loc),sem=base.length-com.length;
   com.forEach(r=>{
     const p=prazoInfo(r);
     L.circleMarker([r.loc.lat,r.loc.lng],{radius:p.late?11:9,color:p.late?'#7a0010':'#ffffff',weight:p.late?3:2,fillColor:COR_STATUS[r.status],fillOpacity:1})
-      .bindPopup(`<div class="pop"><b>[${r.tipo}] ${esc(r.endereco)}, ${esc(r.numero)}</b><br>Medidor: ${esc(r.medidor)} · Etapa ${pad(r.etapa)}<br>${r.status} · ${p.txt}${r.loc.aprox?'<br><i>Posição aproximada</i>':''}<div class="pop-links">${linksRota(r)}</div></div>`)
+      .bindPopup(`<div class="pop"><b>[${r.tipo}] ${esc(r.endereco)}, ${esc(r.numero)}</b><br>Medidor: ${esc(r.medidor)} · Etapa ${pad(r.etapa)}<br>${r.status} · ${p.txt}${r.responsavelNome?'<br>👤 '+esc(r.responsavelNome):''}${r.loc.aprox?'<br><i>Posição aproximada</i>':''}<div class="pop-links">${linksRota(r)}</div></div>`)
       .addTo(camada);
   });
   if(precisaAjustar){
-    if(com.length) mapa.fitBounds(L.latLngBounds(com.map(r=>[r.loc.lat,r.loc.lng])).pad(0.2),{maxZoom:17});
+    if(com.length)mapa.fitBounds(L.latLngBounds(com.map(r=>[r.loc.lat,r.loc.lng])).pad(0.2),{maxZoom:17});
     else mapa.setView(CENTRO_CIDADE,13);
     precisaAjustar=false;
   }
@@ -672,7 +891,7 @@ function atualizarMapa(base){
   setTimeout(()=>mapa.invalidateSize(),60);
 }
 
-// Procura no mapa os apontamentos sem GPS, usando endereço + número + cidade
+// Procura pelo endereço (Mapbox), para apontamentos sem GPS
 async function localizarPorEndereco(){
   const sem=ultimaBase.filter(r=>!r.loc);if(!sem.length)return;
   const b=$('geoBtn');if(b)b.disabled=true;
@@ -681,18 +900,19 @@ async function localizarPorEndereco(){
     const r=sem[i];
     if(b)b.textContent=`Procurando ${i+1}/${sem.length}...`;
     try{
-      const q=encodeURIComponent(`${r.endereco}, ${r.numero}, ${CIDADE}, Brasil`);
-      const resp=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${q}`,{headers:{'Accept-Language':'pt-BR'}});
+      const q=encodeURIComponent(`${r.endereco} ${r.numero}, ${CIDADE}`);
+      const resp=await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?access_token=${MAPBOX_TOKEN}&country=br&limit=1&language=pt&proximity=${CENTRO_CIDADE[1]},${CENTRO_CIDADE[0]}`);
       const j=await resp.json();
-      if(j&&j[0]){r.loc={lat:+(+j[0].lat).toFixed(6),lng:+(+j[0].lon).toFixed(6),acc:null,aprox:true};ok++;}
+      const c=j&&j.features&&j.features[0]&&j.features[0].center;
+      if(c){r.loc={lat:+c[1].toFixed(6),lng:+c[0].toFixed(6),acc:null,aprox:true};gravar(r);ok++}
     }catch(e){}
-    await new Promise(res=>setTimeout(res,1100));
+    await new Promise(res=>setTimeout(res,250));
   }
-  saveStore();precisaAjustar=true;render();
-  alert(`${ok} de ${sem.length} encontrado${sem.length===1?'':'s'} pelo endereço.\nA posição é aproximada; se quiser a exata, use ✏️ Editar → "Usar local atual" quando estiver no endereço.`);
+  precisaAjustar=true;render();
+  alert(`${ok} de ${sem.length} encontrado${sem.length===1?'':'s'} pelo endereço.\nA posição é aproximada; para a exata, use ✏️ Editar → "Usar local atual" quando estiver no endereço.`);
 }
 
-function aplicarMapaAberto(){$('mapaBox').hidden=!mapaAberto;$('mapaToggle').textContent=mapaAberto?'Esconder':'Mostrar';}
+function aplicarMapaAberto(){$('mapaBox').hidden=!mapaAberto;$('mapaToggle').textContent=mapaAberto?'Esconder':'Mostrar'}
 $('mapaToggle').onclick=()=>{
   mapaAberto=!mapaAberto;localStorage.setItem('apontamento_mapa_aberto',mapaAberto?'1':'0');
   aplicarMapaAberto();precisaAjustar=true;atualizarMapa(ultimaBase);
@@ -705,15 +925,153 @@ $('ondeEstou').onclick=()=>{
     if(marcaEu)mapa.removeLayer(marcaEu);
     marcaEu=L.circleMarker([l.lat,l.lng],{radius:9,color:'#fff',weight:3,fillColor:'#0b75e8',fillOpacity:1}).addTo(mapa).bindPopup('Você está aqui');
     mapa.setView([l.lat,l.lng],17);
-  },e=>{b.disabled=false;b.textContent='📍 Onde estou';alert(msgErroLoc(e).replace('📍 ',''));});
+  },e=>{b.disabled=false;b.textContent='📍 Onde estou';alert(msgErroLoc(e).replace('📍 ',''))});
 };
 
+/* =========================================================
+   PERFIL NA TELA
+   ========================================================= */
+function aplicarPerfil(){
+  document.querySelectorAll('[data-perfis]').forEach(el=>{el.hidden=!el.dataset.perfis.split(' ').includes(usuarioAtual.perfil)});
+  const p=PERFIS[usuarioAtual.perfil]||PERFIS.usuario;
+  if(modoNuvem){
+    $('userInfo').innerHTML=`👤 <b>${esc(usuarioAtual.nome||'')}</b><span class="perfil-tag">${p.nome}</span>`;
+    $('perfilBox').innerHTML=`👤 <b>${esc(usuarioAtual.nome)}</b> · ${p.nome}<br>${esc(usuarioAtual.email)}`;
+  }else{
+    $('userInfo').innerHTML='📱 Salvo neste aparelho';
+    $('perfilBox').innerHTML='📱 Modo aparelho<br>Os apontamentos ficam só neste celular.';
+  }
+  $('logoutBtn').hidden=!modoNuvem;
+  $('respWrap').hidden=!modoNuvem;
+  $('meusWrap').hidden=!(modoNuvem&&usuarioAtual.perfil!=='usuario');
+}
+
+/* =========================================================
+   FIREBASE: LOGIN E SINCRONIZAÇÃO
+   ========================================================= */
+let criandoConta=false,nomeCadastro='';
+function msgLogin(t,ok){$('lgMsg').textContent=t||'';$('lgMsg').className='login-msg'+(ok?' ok':'')}
+function erroAuth(e){
+  const c=e&&e.code||'';
+  if(['auth/invalid-credential','auth/wrong-password','auth/user-not-found','auth/invalid-login-credentials'].includes(c))return 'E-mail ou senha incorretos.';
+  if(c==='auth/email-already-in-use')return 'Este e-mail já tem conta. Toque em "Entrar".';
+  if(c==='auth/weak-password')return 'A senha precisa ter pelo menos 6 caracteres.';
+  if(c==='auth/invalid-email')return 'E-mail inválido.';
+  if(c==='auth/network-request-failed')return 'Sem internet.';
+  if(c==='auth/too-many-requests')return 'Muitas tentativas. Espere um pouco.';
+  return 'Não foi possível entrar ('+c+').';
+}
+$('lgTroca').onclick=()=>{
+  criandoConta=!criandoConta;
+  $('nomeWrap').hidden=!criandoConta;
+  $('lgEntrar').textContent=criandoConta?'Criar conta':'Entrar';
+  $('lgTroca').textContent=criandoConta?'Já tenho conta':'Criar conta';
+  $('lgSub').textContent=criandoConta?'Crie sua conta':'Entre com sua conta';
+  $('lgSenha').autocomplete=criandoConta?'new-password':'current-password';
+  msgLogin('');
+};
+$('lgEntrar').onclick=async()=>{
+  const email=$('lgEmail').value.trim(),senha=$('lgSenha').value;
+  if(!email||!senha){msgLogin('Preencha e-mail e senha.');return}
+  if(criandoConta&&!$('lgNome').value.trim()){msgLogin('Preencha seu nome.');return}
+  const b=$('lgEntrar');b.disabled=true;msgLogin('Aguarde...',true);
+  try{
+    if(criandoConta){
+      nomeCadastro=$('lgNome').value.trim();
+      const cred=await auth.createUserWithEmailAndPassword(email,senha);
+      try{await cred.user.updateProfile({displayName:nomeCadastro})}catch(_){}
+    }else await auth.signInWithEmailAndPassword(email,senha);
+    msgLogin('');
+  }catch(e){msgLogin(erroAuth(e))}
+  b.disabled=false;
+};
+$('lgEsqueci').onclick=async()=>{
+  const email=$('lgEmail').value.trim();
+  if(!email){msgLogin('Digite seu e-mail acima e toque de novo.');return}
+  try{await auth.sendPasswordResetEmail(email);msgLogin('Enviamos um e-mail para trocar a senha.',true)}
+  catch(e){msgLogin(erroAuth(e))}
+};
+$('logoutBtn').onclick=()=>{closeMenu();if(confirm('Sair da conta?'))auth.signOut()};
+
+function pararListeners(){if(unsubReg)unsubReg();if(unsubUsr)unsubUsr();unsubReg=unsubUsr=null}
+function iniciarListeners(){
+  pararListeners();setStatus('amarelo');
+  unsubReg=db.collection(COL_REG).onSnapshot({includeMetadataChanges:true},snap=>{
+    records=snap.docs.map(d=>migrar(Object.assign({},d.data(),{id:d.id})));
+    setStatus(snap.metadata.hasPendingWrites||snap.metadata.fromCache?'laranja':'verde');
+    render();
+    if($('trashModal').style.display==='flex')renderTrash();
+  },erroNuvem);
+  unsubUsr=db.collection(COL_USR).onSnapshot(s=>{
+    usuarios=s.docs.map(d=>Object.assign({uid:d.id},d.data()));
+    // perfil atualizado na hora quando o desenvolvedor muda
+    const eu=usuarios.find(u=>u.uid===usuarioAtual.uid);
+    if(eu&&!ehDev(usuarioAtual.email)&&eu.perfil!==usuarioAtual.perfil){usuarioAtual.perfil=eu.perfil;aplicarPerfil();render()}
+    preencherResponsaveis();renderUsuarios();
+  },()=>{});
+}
+
+// Envia para a nuvem, uma vez, o que estava salvo só neste aparelho
+async function enviarLocalParaNuvem(){
+  const flag='apontamento_enviado_'+usuarioAtual.uid;
+  if(localStorage.getItem(flag))return;
+  const locais=JSON.parse(localStorage.getItem(KEY)||'[]').map(migrar);
+  if(!locais.length){localStorage.setItem(flag,'1');return}
+  if(!confirm(`Este aparelho tem ${locais.length} apontamento(s) salvos antes do login.\nEnviar para a nuvem na sua conta?`)){localStorage.setItem(flag,'1');return}
+  try{
+    for(let i=0;i<locais.length;i+=400){
+      const lote=db.batch();
+      locais.slice(i,i+400).forEach(r=>{
+        r.criadoPor=r.criadoPor&&r.criadoPor!=='local'?r.criadoPor:usuarioAtual.uid;
+        r.criadoPorNome=r.criadoPorNome||usuarioAtual.nome;
+        r.atualizadoEm=Date.now();
+        lote.set(db.collection(COL_REG).doc(r.id),limpo(r));
+      });
+      await lote.commit();
+    }
+    localStorage.setItem(flag,'1');alert('Apontamentos enviados para a nuvem. ✅');
+  }catch(e){erroNuvem(e);alert('Não consegui enviar agora. Vou tentar de novo na próxima vez que abrir.')}
+}
+
+function iniciarFirebase(){
+  firebase.initializeApp(FIREBASE_CONFIG);
+  auth=firebase.auth();db=firebase.firestore();
+  db.enablePersistence({synchronizeTabs:true}).catch(()=>{}); // funciona sem internet e sobe depois
+  modoNuvem=true;setStatus('amarelo');
+  auth.onAuthStateChanged(async u=>{
+    if(!u){
+      pararListeners();records=[];usuarios=[];
+      usuarioAtual={uid:'',nome:'',email:'',perfil:'usuario'};
+      $('loginScreen').hidden=false;aplicarPerfil();render();return;
+    }
+    $('loginScreen').hidden=true;
+    const ref=db.collection(COL_USR).doc(u.uid);
+    let dados=null;
+    try{const d=await ref.get();dados=d.exists?d.data():null}catch(e){erroNuvem(e)}
+    if(!dados){
+      dados={nome:nomeCadastro||u.displayName||u.email.split('@')[0],email:u.email,perfil:'usuario',criadoEm:Date.now()};
+      try{await ref.set(dados)}catch(e){erroNuvem(e)}
+    }
+    usuarioAtual={uid:u.uid,nome:dados.nome,email:u.email,perfil:ehDev(u.email)?'desenvolvedor':(dados.perfil||'usuario')};
+    aplicarPerfil();iniciarListeners();enviarLocalParaNuvem();
+  });
+}
+
+/* =========================================================
+   INÍCIO
+   ========================================================= */
 $('versaoRodape').textContent=APP_NOME+' v'+APP_VERSAO;
 $('versaoMenu').textContent=APP_NOME+' • versão '+APP_VERSAO;
-saveStore();      // grava a conversão dos lançamentos antigos
-aplicarPerfil();
 aplicarMapaAberto();
-render();
+
+if(FIREBASE_CONFIG.apiKey&&typeof firebase!=='undefined'){
+  try{iniciarFirebase()}
+  catch(e){console.error(e);modoNuvem=false;carregarLocal();setStatus('vermelho');aplicarPerfil();render()}
+}else{
+  modoNuvem=false;carregarLocal();
+  setStatus(FIREBASE_CONFIG.apiKey?'vermelho':'laranja'); // vermelho = configurado mas não carregou (sem internet)
+  aplicarPerfil();render();
+}
 </script>
 </body>
 </html>
