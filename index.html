@@ -235,6 +235,7 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
       <div class="field"><label>Etapa <span class="req">*</span></label><select id="etapa"><option value="">Selecione</option></select></div>
       <div class="field"><label>Data <span class="req">*</span></label><input id="data" type="date"></div>
     </div>
+    <div class="field" id="apontWrap"><label>Apontado por <span class="req">*</span></label><input id="apontadoPor" autocomplete="name" placeholder="Seu nome"></div>
     <div class="field" id="respWrap" hidden><label>Responsável <small class="opc">(administradora)</small></label><select id="responsavel"></select></div>
     <div class="loc-line" id="locLine"><span id="locTxt">📍 Ao tocar em Endereço, o app pega a localização</span><button type="button" id="locBtn">Pegar agora</button></div>
     <input id="photo" type="file" accept="image/*" capture="environment" hidden>
@@ -339,6 +340,18 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
  </div>
 </div>
 
+<div class="modal" id="execModal">
+ <div class="modalbox">
+  <h2>✅ Executar <button class="close" data-fechar="execModal" aria-label="Fechar">×</button></h2>
+  <div class="hint" id="execInfo" style="text-align:left;margin:0 0 10px"></div>
+  <div class="grid">
+    <div class="field"><label>Executado por <span class="req">*</span></label><input id="execNome" autocomplete="name" placeholder="Nome"></div>
+    <div class="field"><label>Data <span class="req">*</span></label><input id="execData" type="date"></div>
+  </div>
+  <button class="save" id="execOk" type="button">Confirmar execução</button>
+ </div>
+</div>
+
 <div class="modal" id="fotoModal">
  <div class="modalbox">
   <h2>Foto <button class="close" data-fechar="fotoModal" aria-label="Fechar">×</button></h2>
@@ -366,7 +379,7 @@ footer{text-align:center;color:#64768a;font-size:11px;padding:16px 10px calc(env
    CONFIGURAÇÃO GERAL
    ========================================================= */
 const APP_NOME='Apontamento';
-const APP_VERSAO='3.1';            // mude aqui a cada atualização
+const APP_VERSAO='3.2';            // mude aqui a cada atualização
 const REPO_GITHUB='Correcao-999';  // ⚠️ só para o desenvolvedor: nome do repositório no GitHub
 
 const PRAZO_DIAS=7;                // prazo para resolver o apontamento
@@ -397,7 +410,7 @@ const CIDADE='Tatuí - SP';
 const CENTRO_CIDADE=[-23.3556,-47.8569];
 
 // Chaves do aparelho (as mesmas do 999, os lançamentos antigos continuam)
-const KEY='999_correcoes_v1', TRASH='999_lixeira_v1', FILTRO_KEY='apontamento_filtro_etapa', RESP_KEY='apontamento_ultimo_resp';
+const KEY='999_correcoes_v1', TRASH='999_lixeira_v1', FILTRO_KEY='apontamento_filtro_etapa', RESP_KEY='apontamento_ultimo_resp', NOME_KEY='apontamento_meu_nome', EXEC_KEY='apontamento_ultimo_exec';
 
 /* =========================================================
    PERFIS
@@ -542,11 +555,11 @@ function card(r){
   const p=prazoInfo(r);
   const prox=r.status==='Esperando'?'Em execução':r.status==='Em execução'?'Executado':'';
   const resp=r.responsavelNome?`<br>👤 Responsável: <b>${esc(r.responsavelNome)}</b>`:'';
-  const quem=(modoNuvem&&usuarioAtual.perfil!=='usuario'&&r.criadoPorNome)?` · lançado por ${esc(r.criadoPorNome)}`:'';
+  const quem=`<br>📝 Apontado por <b>${esc(apontadoDe(r)||'—')}</b>`+(r.status==='Executado'&&r.executadoPor?`<br>✅ Executado por <b>${esc(r.executadoPor)}</b>${r.executadoEm?' em '+fmt(r.executadoEm):''}`:'');
   return `<article class="record ${cls(r.status)} ${p.late?'late':''}">
     <div>
       <div class="rtitle"><span class="tipo ${r.tipo==='REP'?'rep':''}">${r.tipo}</span>${esc(r.endereco)}, ${esc(r.numero)}</div>
-      <div class="meta">Etapa ${pad(r.etapa)} · Medidor: ${esc(r.medidor)} · Leitura: ${r.leitura?esc(r.leitura):'<i>sem leitura</i>'}<br>📅 ${fmt(r.data)}${quem} · vence ${fmt(vencimento(r))}<br><span class="prazo ${p.c}">${p.txt}</span>${resp}</div>
+      <div class="meta">Etapa ${pad(r.etapa)} · Medidor: ${esc(r.medidor)} · Leitura: ${r.leitura?esc(r.leitura):'<i>sem leitura</i>'}<br>📅 ${fmt(r.data)} · vence ${fmt(vencimento(r))}<br><span class="prazo ${p.c}">${p.txt}</span>${resp}${quem}</div>
       ${r.photo?`<button class="foto-link" onclick="verFoto('${r.id}')">📸 Ver foto</button>`:''}
       <div class="actions">
         <button class="small edit" onclick="editRecord('${r.id}')">✏️ Editar</button>
@@ -596,7 +609,7 @@ function render(){
   const f=$('filtroEtapa').value;
   const base=visiveis().filter(r=>
     (!f||String(r.etapa)===f) &&
-    (!q||[r.endereco,r.numero,r.medidor,r.leitura,r.tipo,r.status,fmt(r.data),r.responsavelNome,r.criadoPorNome].join(' ').toLowerCase().includes(q))
+    (!q||[r.endereco,r.numero,r.medidor,r.leitura,r.tipo,r.status,fmt(r.data),r.responsavelNome,apontadoDe(r),r.executadoPor].join(' ').toLowerCase().includes(q))
   );
   $('count').textContent=base.length;
   renderAviso();
@@ -621,11 +634,29 @@ function render(){
 }
 
 function acha(id){return records.find(x=>x.id===id)}
+function apontadoDe(r){return r.apontadoPor||r.criadoPorNome||''}
 function nextStatus(id){
   const r=acha(id);if(!r)return;
-  r.status=r.status==='Esperando'?'Em execução':'Executado';
-  gravar(r);
+  if(r.status==='Esperando'){r.status='Em execução';gravar(r);return}
+  abrirExecutar(r);
 }
+let execId=null;
+function nomePadraoExec(){return modoNuvem?(usuarioAtual.nome||''):(localStorage.getItem(EXEC_KEY)||'')}
+function abrirExecutar(r){
+  execId=r.id;
+  $('execInfo').textContent=`[${r.tipo}] ${r.endereco}, ${r.numero} · Etapa ${pad(r.etapa)}`;
+  $('execNome').value=nomePadraoExec();$('execData').value=hojeLocal();
+  $('execModal').style.display='flex';
+}
+$('execOk').onclick=()=>{
+  const r=acha(execId);if(!r)return;
+  const nome=$('execNome').value.trim(),d=$('execData').value;
+  if(!nome){alert('Preencha quem executou.');$('execNome').focus();return}
+  if(!d){alert('Preencha a data da execução.');return}
+  if(!modoNuvem)localStorage.setItem(EXEC_KEY,nome);
+  r.status='Executado';r.executadoPor=nome;r.executadoEm=d;
+  gravar(r);$('execModal').style.display='none';
+};
 function deleteRecord(id){
   if(!pode('excluir')){alert('Seu perfil não pode excluir.');return}
   const r=acha(id);if(!r)return;
@@ -673,10 +704,21 @@ function editRecord(id){
     <div class="field"><label>Etapa *</label><select id="e_et"></select></div>
     <div class="field"><label>Data *</label><input id="e_data" type="date" value="${r.data}"></div>
   </div>
+  <div class="field"><label>Apontado por *</label><input id="e_apont" value="${esc(apontadoDe(r))}"></div>
+  <div class="grid" id="e_execWrap">
+    <div class="field"><label>Executado por *</label><input id="e_execNome" value="${esc(r.executadoPor||'')}"></div>
+    <div class="field"><label>Executado em *</label><input id="e_execData" type="date" value="${r.executadoEm||''}"></div>
+  </div>
   ${modoNuvem?'<div class="field"><label>Responsável</label><select id="e_resp"></select></div>':''}
   <div class="loc-line ${r.loc?'ok':''}"><span id="e_locTxt">${r.loc?(r.loc.aprox?'📍 Local aproximado (pelo endereço)':'📍 Tem localização'):'📍 Sem localização'}</span><button type="button" onclick="editPegarLoc()">Usar local atual</button></div>`;
   const s=$('e_et');for(let i=1;i<=18;i++)s.add(new Option(pad(i),i));
   s.value=r.etapa;$('e_status').value=r.status;$('e_tipo').value=r.tipo;
+  const mostraExec=()=>{
+    const ex=$('e_status').value==='Executado';$('e_execWrap').hidden=!ex;
+    if(ex&&!$('e_execNome').value)$('e_execNome').value=nomePadraoExec();
+    if(ex&&!$('e_execData').value)$('e_execData').value=hojeLocal();
+  };
+  $('e_status').onchange=mostraExec;mostraExec();
   if(modoNuvem)opcoesResp($('e_resp'),r.responsavelUid||'');
   $('editModal').style.display='flex';
 }
@@ -684,6 +726,12 @@ $('saveEdit').onclick=()=>{
   const r=acha(editId);if(!r)return;
   const n={tipo:$('e_tipo').value,endereco:$('e_end').value.trim(),numero:$('e_num').value.trim(),medidor:$('e_med').value.trim(),leitura:$('e_leit').value.trim(),etapa:$('e_et').value,data:$('e_data').value,status:$('e_status').value};
   if(!n.endereco||!n.numero||!n.medidor||!n.etapa||!n.data){alert('Preencha todos os campos obrigatórios.');return}
+  n.apontadoPor=$('e_apont').value.trim();
+  if(!n.apontadoPor){alert('Preencha "Apontado por".');return}
+  if(n.status==='Executado'){
+    n.executadoPor=$('e_execNome').value.trim();n.executadoEm=$('e_execData').value;
+    if(!n.executadoPor||!n.executadoEm){alert('Preencha quem executou e a data.');return}
+  }else{n.executadoPor='';n.executadoEm=''}
   if(modoNuvem){n.responsavelUid=$('e_resp').value||'';n.responsavelNome=n.responsavelUid?nomeDe(n.responsavelUid):''}
   if(editLoc)n.loc=editLoc;
   Object.assign(r,n);gravar(r);$('editModal').style.display='none';
@@ -700,6 +748,9 @@ $('form').onsubmit=e=>{
   if(!pode('lancar')){alert('Seu perfil não pode lançar.');return}
   const faltando=['endereco','numero','medidor','etapa','data'].find(c=>!$(c).value.trim());
   if(faltando){alert('Preencha todos os campos obrigatórios.');$(faltando).focus();return}
+  const apont=modoNuvem?(usuarioAtual.nome||''):$('apontadoPor').value.trim();
+  if(!apont){alert('Preencha "Apontado por".');$('apontadoPor').focus();return}
+  if(!modoNuvem)localStorage.setItem(NOME_KEY,apont);
   const respUid=modoNuvem?$('responsavel').value:'';
   const novo={
     id:novoId(),tipo:tipoAtual,
@@ -708,12 +759,13 @@ $('form').onsubmit=e=>{
     etapa:$('etapa').value,data:$('data').value,
     status:'Esperando',photo:photoData,loc:locAtual,lixeira:false,
     criadoPor:usuarioAtual.uid,criadoPorNome:usuarioAtual.nome||'',criadoEm:Date.now(),
-    responsavelUid:respUid,responsavelNome:respUid?nomeDe(respUid):''
+    responsavelUid:respUid,responsavelNome:respUid?nomeDe(respUid):'',
+    apontadoPor:apont,executadoPor:'',executadoEm:''
   };
   gravar(novo);
   $('filtroEtapa').value=novo.etapa;localStorage.setItem(FILTRO_KEY,novo.etapa);
   precisaAjustar=true;resetLoc();
-  e.target.reset();$('data').value=hojeLocal();photoData='';$('preview').style.display='none';
+  e.target.reset();$('data').value=hojeLocal();$('apontadoPor').value=localStorage.getItem(NOME_KEY)||'';photoData='';$('preview').style.display='none';
   if(modoNuvem)preencherResponsaveis();
   render();window.scrollTo({top:0,behavior:'smooth'});
 };
@@ -754,7 +806,7 @@ $('shareApp').onclick=()=>{closeMenu();share('Conheça o aplicativo Apontamento 
 function listaFiltrada(){const f=$('filtroEtapa').value;return visiveis().filter(r=>!f||String(r.etapa)===f)}
 $('shareInfo').onclick=()=>{
   closeMenu();
-  share(listaFiltrada().map(r=>`[${r.tipo}] ${r.endereco}, ${r.numero} | Etapa ${pad(r.etapa)} | ${r.status} | vence ${fmt(vencimento(r))}${r.responsavelNome?' | '+r.responsavelNome:''}`).join('\n')||'Nenhum apontamento registrado.');
+  share(listaFiltrada().map(r=>`[${r.tipo}] ${r.endereco}, ${r.numero} | Etapa ${pad(r.etapa)} | ${r.status} | vence ${fmt(vencimento(r))} | Apontado: ${apontadoDe(r)||'—'}${r.executadoPor?' | Executado: '+r.executadoPor+(r.executadoEm?' em '+fmt(r.executadoEm):''):''}${r.responsavelNome?' | Resp.: '+r.responsavelNome:''}`).join('\n')||'Nenhum apontamento registrado.');
 };
 function baixar(conteudo,tipo,nome){
   const blob=new Blob([conteudo],{type:tipo}),url=URL.createObjectURL(blob),a=document.createElement('a');
@@ -769,8 +821,8 @@ $('exportCSV').onclick=()=>{
   const f=$('filtroEtapa').value;
   const lst=listaFiltrada().sort((a,b)=>Number(a.etapa)-Number(b.etapa)||STATUS.indexOf(a.status)-STATUS.indexOf(b.status)||a.data.localeCompare(b.data));
   if(!lst.length){alert(f?'Nenhum apontamento na Etapa '+pad(f)+' para exportar.':'Não há apontamentos para exportar.');return}
-  const linhas=[['Tipo','Endereço','Número','Medidor','Leitura','Etapa','Data','Vencimento','Situação','Prazo','Responsável','Lançado por','Foto','Latitude','Longitude']];
-  lst.forEach(r=>linhas.push([r.tipo,r.endereco,r.numero,r.medidor,r.leitura,pad(r.etapa),fmt(r.data),fmt(vencimento(r)),r.status,prazoInfo(r).txt.replace(/^[^A-Za-zÀ-ú]+/,''),r.responsavelNome||'',r.criadoPorNome||'',r.photo?'Sim':'Não',r.loc?String(r.loc.lat).replace('.',','):'',r.loc?String(r.loc.lng).replace('.',','):'']));
+  const linhas=[['Tipo','Endereço','Número','Medidor','Leitura','Etapa','Data','Vencimento','Situação','Prazo','Responsável','Apontado por','Executado por','Executado em','Foto','Latitude','Longitude']];
+  lst.forEach(r=>linhas.push([r.tipo,r.endereco,r.numero,r.medidor,r.leitura,pad(r.etapa),fmt(r.data),fmt(vencimento(r)),r.status,prazoInfo(r).txt.replace(/^[^A-Za-zÀ-ú]+/,''),r.responsavelNome||'',apontadoDe(r),r.executadoPor||'',fmt(r.executadoEm||''),r.photo?'Sim':'Não',r.loc?String(r.loc.lat).replace('.',','):'',r.loc?String(r.loc.lng).replace('.',','):'']));
   const csv='\ufeff'+linhas.map(l=>l.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
   baixar(csv,'text/csv;charset=utf-8','apontamento'+(f?'-etapa-'+pad(f):'')+'-'+hojeLocal()+'.csv');
 };
@@ -943,6 +995,7 @@ function aplicarPerfil(){
   }
   $('logoutBtn').hidden=!modoNuvem;
   $('respWrap').hidden=!modoNuvem;
+  $('apontWrap').hidden=modoNuvem;
   $('meusWrap').hidden=!(modoNuvem&&usuarioAtual.perfil!=='usuario');
 }
 
@@ -1063,6 +1116,7 @@ function iniciarFirebase(){
 $('versaoRodape').textContent=APP_NOME+' v'+APP_VERSAO;
 $('versaoMenu').textContent=APP_NOME+' • versão '+APP_VERSAO;
 aplicarMapaAberto();
+$('apontadoPor').value=localStorage.getItem(NOME_KEY)||'';
 
 if(FIREBASE_CONFIG.apiKey&&typeof firebase!=='undefined'){
   try{iniciarFirebase()}
